@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  .ud * { box-sizing:border-box; }
+  .ud-sc::-webkit-scrollbar { width:8px; height:8px; }
+  .ud-sc::-webkit-scrollbar-thumb { background:#2a3038; }
+  .ud-sc.lite::-webkit-scrollbar-thumb { background:#d0d4d8; }
+  .ud-tile { position:relative; width:100%; overflow:hidden; }
+  .ud-tile > image-slot { position:absolute; inset:0; }
+  @keyframes ud-shimmer { 0%{ background-position:-160% 0; } 100%{ background-position:260% 0; } }
+  @keyframes ud-pulse { 0%,100%{ opacity:0.55; } 50%{ opacity:1; } }
+  @keyframes ud-spin { to { transform:rotate(360deg); } }
+  .ud-shim { position:absolute; inset:0; background-size:220% 100%; animation:ud-shimmer 1.25s linear infinite; }
+</style>
+</helmet>
+
+<div class="ud" ref="{{ rootRef }}" style="width:100%; min-height:640px; font-family:'Archivo',sans-serif; background:{{ bg }}; color:{{ text }};">
+
+  <!-- ============ TOP BAR ============ -->
+  <div style="display:flex; align-items:center; gap:16px; background:{{ barBg }}; color:#EDEFF1; padding:12px 18px; border-bottom:1px solid {{ barLine }};">
+    <div style="position:relative; width:24px; height:24px; flex:none; border:1.5px solid #EDEFF1; display:flex; align-items:center; justify-content:center;"><span style="font-weight:900; font-size:10px; letter-spacing:-0.05em;">UP</span><div style="position:absolute; top:-2px; left:-2px; width:6px; height:6px; background:{{ accent }};"></div></div>
+    <div style="font-weight:800; font-size:15px; letter-spacing:-0.01em;">un<span style="color:{{ accentLite }};">Dolphin</span></div>
+
+    <!-- view swapper -->
+    <div style="display:flex; gap:2px; margin-left:10px; background:{{ segTrack }}; padding:2px;">
+      <sc-for list="{{ viewTabs }}" as="v" hint-placeholder-count="3">
+        <div onClick="{{ v.onPick }}" style="cursor:pointer; padding:6px 13px; font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.08em; background:{{ v.bg }}; color:{{ v.color }};">{{ v.label }}</div>
+      </sc-for>
+    </div>
+
+    <div style="flex:1;"></div>
+    <div class="mono" style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#EDEFF1;">$19.79</div>
+    <div onClick="{{ toggleTheme }}" title="Light / dark" style="cursor:pointer; width:26px; height:26px; display:flex; align-items:center; justify-content:center; color:#9aa1a9;">
+      <sc-if value="{{ isDark }}" hint-placeholder-val="{{ true }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.6 6.6 0 0 0 21 12.8Z"></path></svg></sc-if>
+      <sc-if value="{{ isLight }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2.5v2.4M12 19.1v2.4M4.4 4.4l1.7 1.7M17.9 17.9l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.4 19.6l1.7-1.7M17.9 6.1l1.7-1.7"></path></svg></sc-if>
+    </div>
+    <div style="width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg,{{ accent }},{{ accentDark }}); display:flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:700; color:#fff;">SL</div>
+  </div>
+
+  <!-- ============ CONSOLE VIEW ============ -->
+  <sc-if value="{{ isConsole }}" hint-placeholder-val="{{ true }}">
+    <div style="{{ consoleWrap }}">
+      <!-- left rail -->
+      <div class="ud-sc {{ liteClass }}" style="{{ railStyle }} background:{{ panel }}; padding:16px; overflow-y:auto; {{ railMax }}">
+        <!-- model selector -->
+        <div style="position:relative;">
+          <div onClick="{{ toggleModelMenu }}" style="border:1px solid {{ line }}; background:{{ subPanel }}; padding:10px 11px; display:flex; align-items:center; gap:11px; cursor:pointer;">
+            <div class="ud-tile" style="width:38px; height:38px; flex:none; border:1px solid {{ line }};"><image-slot id="{{ selThumbId }}" src="{{ selThumbSrc }}" shape="rect" placeholder=""></image-slot></div>
+            <div style="flex:1; min-width:0;"><div style="font-weight:700; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ selName }}</div><div style="font-family:'JetBrains Mono',monospace; font-size:8.5px; color:{{ muted }}; margin-top:2px;">{{ selProvider }}</div></div>
+            <span style="font-size:11px; color:{{ muted }};">▾</span>
+          </div>
+          <sc-if value="{{ modelMenu }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; top:60px; left:0; right:0; z-index:40; background:{{ pop }}; border:1px solid {{ line }}; box-shadow:0 14px 40px rgba(0,0,0,{{ shadowA }});">
+              <div style="display:flex; gap:0; padding:0 4px; border-bottom:1px solid {{ line }};">
+                <sc-for list="{{ modelTabs }}" as="t" hint-placeholder-count="3">
+                  <div onClick="{{ t.onPick }}" style="cursor:pointer; padding:9px 12px; font-size:11px; font-weight:600; color:{{ t.color }}; border-bottom:2px solid {{ t.bar }};">{{ t.label }}</div>
+                </sc-for>
+                <div style="flex:1;"></div>
+              </div>
+              <div style="padding:9px 10px; border-bottom:1px solid {{ line }};">
+                <div style="display:flex; align-items:center; gap:8px; border:1px solid {{ line }}; background:{{ subPanel }}; padding:6px 9px;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="{{ faint }}" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg>
+                  <input value="{{ modelSearch }}" onInput="{{ onSearchInput }}" placeholder="Search models…" style="flex:1; min-width:0; background:transparent; border:none; outline:none; color:{{ text }}; font-family:'Archivo',sans-serif; font-size:12px;">
+                </div>
+              </div>
+              <div class="ud-sc {{ liteClass }}" style="max-height:250px; overflow-y:auto;">
+                <sc-for list="{{ modelRows }}" as="m" hint-placeholder-count="5">
+                  <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid {{ hair }}; background:{{ m.bg }};">
+                    <div onClick="{{ m.onPick }}" style="display:flex; align-items:center; gap:10px; flex:1; min-width:0; cursor:pointer;">
+                      <div class="ud-tile" style="width:28px; height:28px; flex:none; border:1px solid {{ line }};"><image-slot id="{{ m.thumbId }}" src="{{ m.thumbSrc }}" shape="rect" placeholder=""></image-slot></div>
+                      <div style="flex:1; min-width:0;"><div style="font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ m.name }}</div><div style="font-family:'JetBrains Mono',monospace; font-size:8px; color:{{ muted }};">{{ m.provider }} · ${{ m.price }}</div></div>
+                    </div>
+                    <div onClick="{{ m.onFav }}" style="cursor:pointer; flex:none; padding:2px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="{{ m.starFill }}" stroke="{{ m.starStroke }}" stroke-width="1.5"><path d="M12 2l3 6 6 1-4.5 4.5 1 6-5.5-3-5.5 3 1-6L3 9l6-1z"></path></svg></div>
+                    <span style="font-family:'JetBrains Mono',monospace; font-size:7px; color:#fff; background:{{ muted }}; padding:2px 4px; flex:none;">{{ m.tag }}</span>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ noModels }}" hint-placeholder-val="{{ false }}"><div style="padding:18px; text-align:center; font-size:11px; color:{{ muted }};">No models match "{{ modelSearch }}"</div></sc-if>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+
+        <!-- prompt -->
+        <textarea value="{{ prompt }}" onInput="{{ onPromptInput }}" placeholder="Type your prompt here to start…" style="width:100%; margin-top:13px; min-height:74px; resize:vertical; border:1.5px solid {{ accent }}; background:{{ subPanel }}; color:{{ text }}; font-family:'Archivo',sans-serif; font-size:12.5px; line-height:1.5; padding:10px; outline:none;"></textarea>
+        <div style="display:flex; align-items:center; gap:8px; margin-top:9px;">
+          <div onClick="{{ toggleNegative }}" style="cursor:pointer; width:28px; height:16px; border-radius:8px; background:{{ negTrack }}; position:relative; transition:background 160ms;"><div style="position:absolute; top:2px; width:12px; height:12px; border-radius:50%; background:#fff; left:{{ negKnob }}; transition:left 160ms;"></div></div>
+          <span style="font-size:11.5px; color:{{ muted }};">Negative prompt</span>
+        </div>
+        <sc-if value="{{ negativeOn }}" hint-placeholder-val="{{ false }}">
+          <textarea value="{{ negative }}" onInput="{{ onNegInput }}" placeholder="What to avoid…" style="width:100%; margin-top:8px; min-height:44px; resize:vertical; border:1px solid {{ line }}; background:{{ subPanel }}; color:{{ text }}; font-family:'Archivo',sans-serif; font-size:12px; line-height:1.5; padding:9px; outline:none;"></textarea>
+        </sc-if>
+
+        <!-- reference images -->
+        <div style="margin-top:14px; padding-top:14px; border-top:1px solid {{ line }};">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.14em; color:{{ muted }}; margin-bottom:8px;">REFERENCE IMAGES</div>
+          <div class="ud-tile" style="width:100%; height:96px; border:1px dashed {{ line }};"><image-slot id="ref_main" src="{{ refSrc }}" shape="rect" placeholder="Drop, click, or paste below…"></image-slot></div>
+          <div style="display:flex; gap:6px; margin-top:8px;">
+            <input value="{{ refUrl }}" onInput="{{ onRefUrl }}" placeholder="Paste URL / UUID / Data URI" style="flex:1; min-width:0; border:1px solid {{ line }}; background:{{ subPanel }}; color:{{ text }}; font-family:'JetBrains Mono',monospace; font-size:10px; padding:8px 9px; outline:none;">
+            <div onClick="{{ addRef }}" style="cursor:pointer; border:1px solid {{ line }}; background:{{ subPanel }}; padding:8px 12px; color:{{ text }}; display:flex; align-items:center;">↵</div>
+          </div>
+        </div>
+
+        <!-- controls -->
+        <div style="margin-top:16px; padding-top:14px; border-top:1px solid {{ line }};">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.14em; color:{{ muted }}; margin-bottom:9px;">BASIC CONTROLS</div>
+          <div style="font-size:11.5px; color:{{ muted }}; margin-bottom:5px;">Size</div>
+          <div style="display:flex; gap:4px; flex-wrap:wrap;">
+            <sc-for list="{{ sizeRows }}" as="s" hint-placeholder-count="4">
+              <div onClick="{{ s.onPick }}" style="cursor:pointer; padding:6px 10px; font-family:'JetBrains Mono',monospace; font-size:9.5px; border:1px solid {{ s.border }}; background:{{ s.bg }}; color:{{ s.color }};">{{ s.label }}</div>
+            </sc-for>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px;"><span style="font-size:11.5px; color:{{ muted }};">Steps</span><span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:{{ muted }};">{{ steps }} / {{ stepMax }}</span></div>
+          <div onClick="{{ stepsClick }}" ref="{{ stepsRef }}" style="height:4px; background:{{ line }}; margin-top:7px; position:relative; cursor:pointer;"><div style="position:absolute; left:0; top:0; bottom:0; width:{{ stepsPct }}%; background:{{ accent }};"></div><div style="position:absolute; left:{{ stepsPct }}%; top:50%; width:12px; height:12px; border-radius:50%; background:{{ accent }}; transform:translate(-50%,-50%);"></div></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px;"><span style="font-size:11.5px; color:{{ muted }};">Number of images</span><span style="font-family:'JetBrains Mono',monospace; font-size:11px;">{{ numImages }}</span></div>
+          <div onClick="{{ numClick }}" ref="{{ numRef }}" style="height:4px; background:{{ line }}; margin-top:7px; position:relative; cursor:pointer;"><div style="position:absolute; left:0; top:0; bottom:0; width:{{ numPct }}%; background:{{ accent }};"></div><div style="position:absolute; left:{{ numPct }}%; top:50%; width:12px; height:12px; border-radius:50%; background:{{ accent }}; transform:translate(-50%,-50%);"></div></div>
+        </div>
+
+        <!-- actions -->
+        <div style="display:flex; gap:9px; margin-top:18px;">
+          <div onClick="{{ saveConfig }}" style="flex:1; text-align:center; cursor:pointer; border:1px solid {{ line }}; background:{{ subPanel }}; padding:11px 0; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:7px; color:{{ text }};"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 3h11l3 3v15H5z"></path><path d="M8 3v6h7"></path></svg>{{ saveLabel }}</div>
+          <div onClick="{{ generate }}" style="flex:1.35; text-align:center; cursor:pointer; background:{{ genBg }}; color:#fff; padding:11px 0; font-size:12px; font-weight:700;">{{ genLabel }}</div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; color:{{ muted }}; margin-top:11px; text-align:center;">≈ <span style="color:{{ accentLite }}; font-weight:700;">${{ liveCost }}</span> · {{ numImages }} × ${{ selPrice }}</div>
+
+        <!-- saved configs -->
+        <sc-if value="{{ hasConfigs }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:18px; padding-top:14px; border-top:1px solid {{ line }};">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:9px;"><span style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.14em; color:{{ muted }};">SAVED CONFIGS · {{ configCount }}</span><span onClick="{{ exportConfigs }}" style="cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:8.5px; color:{{ accentLite }};">EXPORT JSON</span></div>
+            <sc-for list="{{ configRows }}" as="c" hint-placeholder-count="2">
+              <div style="display:flex; align-items:center; gap:8px; border:1px solid {{ line }}; padding:8px 9px; margin-bottom:6px;">
+                <div onClick="{{ c.onLoad }}" style="flex:1; min-width:0; cursor:pointer;"><div style="font-size:11.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ c.title }}</div><div style="font-family:'JetBrains Mono',monospace; font-size:8px; color:{{ muted }}; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ c.meta }}</div></div>
+                <div onClick="{{ c.onDelete }}" style="cursor:pointer; color:{{ faint }}; font-size:14px; flex:none;">×</div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+
+      <!-- main grid -->
+      <div class="ud-sc {{ liteClass }}" style="flex:1; min-width:0; background-color:{{ bg }}; background-image:{{ gfImg }}; background-size:{{ gfSize }}; padding:16px 18px; overflow-y:auto; {{ railMax }}">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+          <span style="font-size:12.5px;">Model: <b>{{ selName }}</b> · Cost: <span style="font-family:'JetBrains Mono',monospace; color:{{ accentLite }}; font-weight:700;">${{ liveCost }}</span></span>
+          <div style="flex:1;"></div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.1em; color:{{ muted }};">{{ gridModeLabel }}</div>
+        </div>
+        <div style="{{ gridContainerStyle }}">
+          <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="6">
+            <div style="{{ t.cellStyle }}">
+              <div onClick="{{ t.onOpen }}" class="ud-tile" style="padding-bottom:{{ t.pad }}%; border:1px solid {{ line }}; cursor:pointer; outline:{{ t.outline }}; outline-offset:-2px;">
+                <sc-if value="{{ t.ready }}" hint-placeholder-val="{{ true }}"><image-slot id="{{ t.id }}" src="{{ t.src }}" shape="rect" placeholder=""></image-slot></sc-if>
+                <sc-if value="{{ t.loading }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute; inset:0; background:{{ subPanel }};"></div>
+                  <div class="ud-shim" style="background-image:linear-gradient(90deg, transparent 0%, {{ shimGlow }} 50%, transparent 100%);"></div>
+                  <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;"><div style="width:26px; height:26px; border:2px solid {{ line }}; border-top-color:{{ accent }}; border-radius:50%; animation:ud-spin 0.8s linear infinite;"></div></div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ GALLERY VIEW ============ -->
+  <sc-if value="{{ isGallery }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex; flex-direction:column; min-height:590px;">
+      <div style="display:flex; align-items:stretch; flex:1;">
+        <div class="ud-sc {{ liteClass }}" style="flex:1; min-width:0; background-color:{{ bg }}; background-image:{{ gfImg }}; background-size:{{ gfSize }}; padding:16px 18px; overflow-y:auto; max-height:calc(100vh - 110px); column-gap:12px; columns:{{ galleryCols }};">
+          <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="8">
+            <div style="break-inside:avoid; margin-bottom:12px;">
+              <div onClick="{{ t.onOpen }}" class="ud-tile" style="padding-bottom:{{ t.pad }}%; border:1px solid {{ line }}; cursor:pointer; outline:{{ t.outline }}; outline-offset:-2px;">
+                <sc-if value="{{ t.ready }}" hint-placeholder-val="{{ true }}"><image-slot id="{{ t.id }}" src="{{ t.src }}" shape="rect" placeholder=""></image-slot></sc-if>
+                <sc-if value="{{ t.loading }}" hint-placeholder-val="{{ false }}"><div style="position:absolute; inset:0; background:{{ subPanel }};"></div><div class="ud-shim" style="background-image:linear-gradient(90deg, transparent 0%, {{ shimGlow }} 50%, transparent 100%);"></div><div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;"><div style="width:24px; height:24px; border:2px solid {{ line }}; border-top-color:{{ accent }}; border-radius:50%; animation:ud-spin 0.8s linear infinite;"></div></div></sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <!-- detail drawer -->
+        <sc-if value="{{ detailOpen }}" hint-placeholder-val="{{ false }}">
+          <div class="ud-sc {{ liteClass }}" style="width:300px; flex:none; background:{{ panel }}; border-left:1px solid {{ line }}; padding:16px; overflow-y:auto; max-height:calc(100vh - 110px);">
+            {{ detailBody }}
+          </div>
+        </sc-if>
+      </div>
+      <!-- command bar -->
+      <div style="border-top:1px solid {{ line }}; background:{{ panel }}; padding:12px 16px; display:flex; align-items:center; gap:11px;">
+        <div style="position:relative;">
+          <div onClick="{{ toggleModelMenu }}" style="display:flex; align-items:center; gap:8px; border:1px solid {{ line }}; background:{{ subPanel }}; padding:8px 10px; cursor:pointer;"><div class="ud-tile" style="width:22px; height:22px; border:1px solid {{ line }};"><image-slot id="{{ selThumbId }}" src="{{ selThumbSrc }}" shape="rect" placeholder=""></image-slot></div><span style="font-size:12px; font-weight:600;">{{ selName }}</span><span style="font-size:9px; color:{{ muted }};">▾</span></div>
+          <sc-if value="{{ modelMenu }}" hint-placeholder-val="{{ false }}">
+            <div class="ud-sc {{ liteClass }}" style="position:absolute; bottom:46px; left:0; z-index:40; width:280px; background:{{ pop }}; border:1px solid {{ line }}; box-shadow:0 14px 40px rgba(0,0,0,{{ shadowA }}); max-height:280px; overflow-y:auto;">
+              <div style="padding:9px 10px; border-bottom:1px solid {{ line }};"><div style="display:flex; align-items:center; gap:8px; border:1px solid {{ line }}; background:{{ subPanel }}; padding:6px 9px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="{{ faint }}" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg><input value="{{ modelSearch }}" onInput="{{ onSearchInput }}" placeholder="Search models…" style="flex:1; min-width:0; background:transparent; border:none; outline:none; color:{{ text }}; font-family:'Archivo',sans-serif; font-size:12px;"></div></div>
+              <sc-for list="{{ modelRows }}" as="m" hint-placeholder-count="5">
+                <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid {{ hair }}; background:{{ m.bg }};">
+                  <div onClick="{{ m.onPick }}" style="display:flex; align-items:center; gap:10px; flex:1; min-width:0; cursor:pointer;"><div class="ud-tile" style="width:26px; height:26px; flex:none; border:1px solid {{ line }};"><image-slot id="{{ m.thumbId }}" src="{{ m.thumbSrc }}" shape="rect" placeholder=""></image-slot></div><div style="flex:1; min-width:0;"><div style="font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ m.name }}</div><div style="font-family:'JetBrains Mono',monospace; font-size:8px; color:{{ muted }};">{{ m.provider }} · ${{ m.price }}</div></div></div>
+                  <div onClick="{{ m.onFav }}" style="cursor:pointer; flex:none; padding:2px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="{{ m.starFill }}" stroke="{{ m.starStroke }}" stroke-width="1.5"><path d="M12 2l3 6 6 1-4.5 4.5 1 6-5.5-3-5.5 3 1-6L3 9l6-1z"></path></svg></div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+        <input value="{{ prompt }}" onInput="{{ onPromptInput }}" placeholder="Describe your image…" style="flex:1; min-width:0; border:1.5px solid {{ accent }}; background:{{ subPanel }}; color:{{ text }}; font-family:'Archivo',sans-serif; font-size:12.5px; padding:10px 12px; outline:none;">
+        <div onClick="{{ saveConfig }}" style="cursor:pointer; border:1px solid {{ line }}; background:{{ subPanel }}; padding:10px 13px; font-size:12px; font-weight:600; color:{{ text }};">{{ saveLabel }}</div>
+        <div onClick="{{ generate }}" style="cursor:pointer; background:{{ genBg }}; color:#fff; padding:10px 18px; font-size:12.5px; font-weight:700;">{{ genLabel }}</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ WORKBENCH VIEW ============ -->
+  <sc-if value="{{ isWorkbench }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex; align-items:stretch; min-height:590px;">
+      <!-- left model browser -->
+      <div style="width:230px; flex:none; background:{{ panel }}; border-right:1px solid {{ line }}; display:flex; flex-direction:column; max-height:calc(100vh - 49px);">
+        <div style="padding:13px; border-bottom:1px solid {{ hair }};">
+          <div style="display:flex; align-items:center; gap:8px; border:1px solid {{ line }}; background:{{ subPanel }}; padding:7px 9px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="{{ faint }}" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg><input value="{{ modelSearch }}" onInput="{{ onSearchInput }}" placeholder="Search 400+ models" style="flex:1; min-width:0; background:transparent; border:none; outline:none; color:{{ text }}; font-family:'Archivo',sans-serif; font-size:11.5px;"></div>
+          <div style="display:flex; gap:5px; margin-top:9px;">
+            <sc-for list="{{ filterRows }}" as="f" hint-placeholder-count="3">
+              <div onClick="{{ f.onPick }}" style="cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:8px; padding:3px 8px; background:{{ f.bg }}; color:{{ f.color }};">{{ f.label }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div class="ud-sc {{ liteClass }}" style="flex:1; overflow-y:auto;">
+          <sc-for list="{{ modelRows }}" as="m" hint-placeholder-count="6">
+            <div style="display:flex; align-items:center; gap:9px; padding:9px 12px; border-left:{{ m.wbBorder }}; background:{{ m.bg }};">
+              <div onClick="{{ m.onPick }}" style="display:flex; align-items:center; gap:9px; flex:1; min-width:0; cursor:pointer;"><div class="ud-tile" style="width:28px; height:28px; flex:none; border:1px solid {{ line }};"><image-slot id="{{ m.thumbId }}" src="{{ m.thumbSrc }}" shape="rect" placeholder=""></image-slot></div><div style="flex:1; min-width:0;"><div style="font-size:11.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ m.name }}</div><div style="font-family:'JetBrains Mono',monospace; font-size:7.5px; color:{{ muted }};">${{ m.price }}</div></div></div>
+              <div onClick="{{ m.onFav }}" style="cursor:pointer; flex:none; padding:2px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="{{ m.starFill }}" stroke="{{ m.starStroke }}" stroke-width="1.5"><path d="M12 2l3 6 6 1-4.5 4.5 1 6-5.5-3-5.5 3 1-6L3 9l6-1z"></path></svg></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- center workspace -->
+      <div class="ud-sc {{ liteClass }}" style="flex:1; min-width:0; background-color:{{ bg }}; background-image:{{ gfImg }}; background-size:{{ gfSize }}; padding:16px; overflow-y:auto; max-height:calc(100vh - 49px);">
+        <textarea value="{{ prompt }}" onInput="{{ onPromptInput }}" placeholder="Type your prompt…" style="width:100%; min-height:60px; resize:vertical; border:1.5px solid {{ accent }}; background:{{ subPanel }}; color:{{ text }}; font-family:'Archivo',sans-serif; font-size:12.5px; line-height:1.5; padding:10px; outline:none;"></textarea>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <div style="flex:1; background:{{ subPanel }}; border:1px solid {{ line }}; padding:7px 9px;"><div style="font-family:'JetBrains Mono',monospace; font-size:7.5px; color:{{ faint }};">SIZE</div><div style="font-family:'JetBrains Mono',monospace; font-size:10px;">{{ sizeLabel }}</div></div>
+          <div style="flex:1; background:{{ subPanel }}; border:1px solid {{ line }}; padding:7px 9px;"><div style="font-family:'JetBrains Mono',monospace; font-size:7.5px; color:{{ faint }};">STEPS</div><div style="font-family:'JetBrains Mono',monospace; font-size:10px;">{{ steps }}</div></div>
+          <div style="flex:1; background:{{ subPanel }}; border:1px solid {{ line }}; padding:7px 9px;"><div style="font-family:'JetBrains Mono',monospace; font-size:7.5px; color:{{ faint }};">IMAGES</div><div style="font-family:'JetBrains Mono',monospace; font-size:10px;">{{ numImages }}</div></div>
+        </div>
+        <div onClick="{{ generate }}" style="cursor:pointer; background:{{ genBg }}; color:#fff; text-align:center; padding:10px 0; font-size:12.5px; font-weight:700; margin-top:10px;">{{ genLabel }}</div>
+        <div style="margin-top:14px; columns:{{ wbCols }}; column-gap:10px;">
+          <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="4">
+            <div style="break-inside:avoid; margin-bottom:10px;"><div onClick="{{ t.onOpen }}" class="ud-tile" style="padding-bottom:{{ t.pad }}%; border:1px solid {{ line }}; cursor:pointer; outline:{{ t.outline }}; outline-offset:-2px;">
+              <sc-if value="{{ t.ready }}" hint-placeholder-val="{{ true }}"><image-slot id="{{ t.id }}" src="{{ t.src }}" shape="rect" placeholder=""></image-slot></sc-if>
+              <sc-if value="{{ t.loading }}" hint-placeholder-val="{{ false }}"><div style="position:absolute; inset:0; background:{{ subPanel }};"></div><div class="ud-shim" style="background-image:linear-gradient(90deg, transparent 0%, {{ shimGlow }} 50%, transparent 100%);"></div><div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;"><div style="width:22px; height:22px; border:2px solid {{ line }}; border-top-color:{{ accent }}; border-radius:50%; animation:ud-spin 0.8s linear infinite;"></div></div></sc-if>
+            </div></div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- right inspector -->
+      <div class="ud-sc {{ liteClass }}" style="width:224px; flex:none; background:{{ panel }}; border-left:1px solid {{ line }}; padding:14px; overflow-y:auto; max-height:calc(100vh - 49px);">
+        <sc-if value="{{ detailOpen }}" hint-placeholder-val="{{ false }}">{{ detailBody }}</sc-if>
+        <sc-if value="{{ detailClosed }}" hint-placeholder-val="{{ true }}">
+          <div style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.12em; color:{{ muted }};">LIVE COST</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:700; color:{{ accentLite }}; margin-top:4px;">${{ liveCost }}</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:8.5px; color:{{ muted }};">{{ numImages }} × ${{ selPrice }}</div>
+          <div onClick="{{ saveConfig }}" style="cursor:pointer; background:{{ barBg }}; color:#fff; text-align:center; padding:9px 0; font-size:11px; font-weight:700; margin-top:12px; display:flex; align-items:center; justify-content:center; gap:6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7"><path d="M5 3h11l3 3v15H5z"></path><path d="M8 3v6h7"></path></svg>{{ saveLabel }}</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.12em; color:{{ muted }}; margin:18px 0 9px;">SAVED CONFIGS · {{ configCount }}</div>
+          <sc-for list="{{ configRows }}" as="c" hint-placeholder-count="2">
+            <div style="display:flex; align-items:center; gap:8px; border:1px solid {{ line }}; padding:8px 9px; margin-bottom:6px;"><div onClick="{{ c.onLoad }}" style="flex:1; min-width:0; cursor:pointer;"><div style="font-size:11px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ c.title }}</div><div style="font-family:'JetBrains Mono',monospace; font-size:7.5px; color:{{ muted }}; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ c.meta }}</div></div><div onClick="{{ c.onDelete }}" style="cursor:pointer; color:{{ faint }}; font-size:13px; flex:none;">×</div></div>
+          </sc-for>
+          <sc-if value="{{ noConfigs }}" hint-placeholder-val="{{ true }}"><div style="font-size:10.5px; color:{{ faint }}; line-height:1.5;">No saved configs yet. Hit Save to keep a prompt + model + settings preset.</div></sc-if>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ DETAIL MODAL (console/workbench overlay) ============ -->
+  <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeDetail }}" style="position:fixed; inset:0; z-index:60; background:rgba(6,8,10,0.62); display:flex; align-items:center; justify-content:center; padding:28px;">
+      <div onClick="{{ stop }}" class="ud-sc {{ liteClass }}" style="width:100%; max-width:760px; max-height:88vh; overflow-y:auto; background:{{ panel }}; border:1px solid {{ line }}; box-shadow:0 24px 70px rgba(0,0,0,0.5); display:flex;">
+        <div class="ud-tile" style="width:340px; flex:none; padding-bottom:0; height:auto; background:{{ subPanel }};"><div class="ud-tile" style="padding-bottom:{{ detailPad }}%;"><image-slot id="{{ detailImgId }}" src="{{ detailImgSrc }}" shape="rect" placeholder=""></image-slot></div></div>
+        <div style="flex:1; min-width:0; padding:20px;">{{ detailBody }}</div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:720},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#b81414&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Brand&quot;},&quot;accentInk&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#9e1212&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Brand&quot;},&quot;view&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;console&quot;,&quot;options&quot;:[&quot;console&quot;,&quot;gallery&quot;,&quot;workbench&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;dark&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    const R = 'runware:';
+    this.models = [
+      { id:'jugg',  name:'Juggernaut Pro Flux', provider:'RunDiffusion', air:R+'100@1',  price:0.0042, tag:'FLUX',  ar:'16:9', sizes:['1:1','16:9','9:16','3:2','2:3'], stepMax:50, fav:true },
+      { id:'flux2', name:'FLUX.2 [dev]',        provider:'Black Forest', air:R+'101@2',  price:0.0090, tag:'FLUX2DEV', ar:'1:1', sizes:['1:1','16:9','9:16','4:3','3:2','2:3'], stepMax:50, fav:true },
+      { id:'sdxl',  name:'SDXL Lightning',      provider:'ByteDance',    air:R+'102@1',  price:0.0015, tag:'DISTILLED', ar:'1:1', sizes:['1:1','16:9','9:16'], stepMax:8, fav:false },
+      { id:'recr',  name:'Recraft v3',          provider:'Recraft',      air:R+'103@1',  price:0.0400, tag:'PRO', ar:'3:2', sizes:['1:1','3:2','2:3','16:9'], stepMax:40, fav:false },
+      { id:'tryon', name:'FLUX Virtual Try-On', provider:'Black Forest', air:R+'104@1',  price:0.0120, tag:'FLUXPRO', ar:'2:3', sizes:['2:3','3:2','1:1'], stepMax:40, fav:false },
+      { id:'klein', name:'FLUX.2 [klein] 4B',   provider:'Black Forest', air:R+'105@1',  price:0.0022, tag:'DISTILLED', ar:'1:1', sizes:['1:1','16:9','9:16'], stepMax:12, fav:false },
+      { id:'ideo',  name:'Ideogram v2',         provider:'Ideogram',     air:R+'106@1',  price:0.0080, tag:'BASE', ar:'16:9', sizes:['1:1','16:9','9:16','3:2','2:3'], stepMax:50, fav:false },
+      { id:'seed',  name:'Seedream 3.0',        provider:'ByteDance',    air:R+'107@1',  price:0.0300, tag:'PRO', ar:'9:16', sizes:['9:16','16:9','1:1','2:3','3:2'], stepMax:50, fav:false }
+    ];
+    // seeded mixed-model session (masonry)
+    const sess = [
+      { mid:'jugg', ar:'16:9', seed:184922 },
+      { mid:'flux2', ar:'1:1', seed:771204 },
+      { mid:'seed', ar:'9:16', seed:559013 },
+      { mid:'recr', ar:'3:2', seed:290551 },
+      { mid:'tryon', ar:'2:3', seed:640877 },
+      { mid:'jugg', ar:'16:9', seed:118234 },
+      { mid:'ideo', ar:'16:9', seed:903472 },
+      { mid:'flux2', ar:'1:1', seed:445190 }
+    ];
+    this.state = {
+      view: props.view || 'console',
+      theme: props.theme || 'dark',
+      modelId: 'jugg',
+      modelMenu:false, modelSearch:'', modelTab:'featured', filter:'all',
+      favs: this.models.filter(m=>m.fav).map(m=>m.id),
+      prompt: 'A lone traveller in a ruined stone courtyard, dawn light, cinematic, volumetric fog',
+      negativeOn:false, negative:'',
+      sizeIdx: 1, steps: 30, numImages: 4, cfg: 3.5,
+      results: sess.map((s,i)=>({ id:'r'+i+'_'+s.mid, mid:s.mid, ar:s.ar, seed:s.seed })),
+      mixed:true,
+      configs: [
+        { id:'cfg1', title:'Courtyard · cinematic', mid:'jugg', ar:'16:9', prompt:'A lone traveller in a ruined stone courtyard…' },
+        { id:'cfg2', title:'Product · white bg', mid:'recr', ar:'1:1', prompt:'Studio product shot, seamless white background…' }
+      ],
+      detailIdx: null,
+      justSaved:false,
+      refUrl:'', refSrc:'',
+      generating:false, genCount:0,
+      w: 1200
+    };
+    this._sizes = ['1:1','16:9','9:16','3:2','2:3','4:3'];
+  }
+  componentDidMount(){
+    this.loadState('undolphin-configs.state.json').then(c=>{ if(Array.isArray(c) && c.length) this.setState({ configs:c }); });
+    this.loadState('undolphin-session.state.json').then(s=>{ if(s && Array.isArray(s.results) && s.results.length){ const res=s.results.map(r=>({ id:r.id, mid:r.mid, ar:r.size, seed:r.seed })); this.setState({ results:res, mixed:!!s.mixed }); } });
+    const el=this.rootEl;
+    if(el && typeof ResizeObserver!=='undefined'){ this._ro=new ResizeObserver(ents=>{ const w=Math.round(ents[0].contentRect.width); if(Math.abs(w-this.state.w)>2) this.setState({ w }); }); this._ro.observe(el); const r=el.getBoundingClientRect(); this.setState({ w:Math.round(r.width) }); }
+  }
+  writeState(path, obj){ const s=JSON.stringify(obj,null,2); try{ localStorage.setItem(path, s); }catch(e){} try{ const w=window.omelette && window.omelette.writeFile; if(w) Promise.resolve(w(path, s)).catch(()=>{}); }catch(e){} }
+  async loadState(path){ try{ const r=await fetch(path,{cache:'no-store'}); if(r.ok) return await r.json(); }catch(e){} try{ const raw=localStorage.getItem(path); if(raw) return JSON.parse(raw); }catch(e){} return null; }
+  persistSession(results, mixed){ const mo=this.model(this.state.modelId); const doc={ savedAt:new Date().toISOString(), model:mo.name, air:mo.air, provider:mo.provider, size:this._sizes[this.state.sizeIdx], steps:this.state.steps, cfg:this.state.cfg, count:results.length, costEach:mo.price, costTotal:+(mo.price*results.length).toFixed(4), prompt:this.state.prompt, negative:this.state.negativeOn?this.state.negative:'', mixed:!!mixed, results: results.map(r=>({ id:r.id, mid:r.mid, model:this.model(r.mid).name, seed:r.seed, size:r.ar })) }; this.writeState('undolphin-session.state.json', doc); }
+  componentWillUnmount(){ if(this._ro) this._ro.disconnect(); if(this._saveT) clearTimeout(this._saveT); if(this._genT) clearTimeout(this._genT); }
+
+  model(id){ return this.models.find(m=>m.id===id) || this.models[0]; }
+  arPad(ar){ const [w,h]=ar.split(':').map(Number); return (h/w*100).toFixed(2); }
+  arDims(ar){ const map={ '1:1':'1024×1024','16:9':'1344×768','9:16':'768×1344','3:2':'1216×832','2:3':'832×1216','4:3':'1152×896' }; return map[ar]||''; }
+  fmt(n){ return n.toFixed(4); }
+
+  // actions
+  setView(v){ this.setState({ view:v, modelMenu:false }); }
+  toggleTheme(){ this.setState({ theme: this.state.theme==='dark'?'light':'dark' }); }
+  toggleModelMenu(){ this.setState({ modelMenu:!this.state.modelMenu }); }
+  setModelTab(t){ this.setState({ modelTab:t }); }
+  onSearchInput(e){ this.setState({ modelSearch:e.target.value, modelTab:'search' }); }
+  pickModel(id){ const m=this.model(id); const cur=this._sizes[this.state.sizeIdx]; let si=this.state.sizeIdx; if(m.sizes && m.sizes.indexOf(cur)<0){ si=this._sizes.indexOf(m.ar); if(si<0) si=this._sizes.indexOf(m.sizes[0]); } const steps=Math.min(this.state.steps, m.stepMax||50); this.setState({ modelId:id, modelMenu:false, sizeIdx:si, steps }); }
+  toggleFav(id){ const f=this.state.favs.slice(); const i=f.indexOf(id); if(i>=0) f.splice(i,1); else f.push(id); this.setState({ favs:f }); }
+  setFilter(f){ this.setState({ filter:f }); }
+  onPromptInput(e){ this.setState({ prompt:e.target.value }); }
+  toggleNegative(){ this.setState({ negativeOn:!this.state.negativeOn }); }
+  onNegInput(e){ this.setState({ negative:e.target.value }); }
+  onRefUrl(e){ this.setState({ refUrl:e.target.value }); }
+  addRef(){ const u=(this.state.refUrl||'').trim(); if(u) this.setState({ refSrc:u }); }
+  arWH(ar, base){ const p=ar.split(':').map(Number); const w=p[0],h=p[1]; if(w>=h){ return [base, Math.round(base*h/w)]; } return [Math.round(base*w/h), base]; }
+  pickSize(i){ this.setState({ sizeIdx:i }); }
+  sliderClick(e, ref, min, max, key){ const el=this[ref]; if(!el) return; const r=el.getBoundingClientRect(); const f=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)); this.setState({ [key]: Math.round(min+(max-min)*f) }); }
+  generate(){ if(this.state.generating) return; const m=this.state.modelId; const n=this.state.numImages; const ar=this._sizes[this.state.sizeIdx]; const base=Date.now(); const res=[]; for(let i=0;i<n;i++){ res.push({ id:'g'+base+'_'+i, mid:m, ar:ar, seed:Math.floor(Math.random()*1e6) }); } this.setState({ generating:true, genCount:n, mixed:false, detailIdx:null }); this._genRes=res; if(this._genT) clearTimeout(this._genT); const steps=this.state.steps; const dur=Math.min(3200, 900+steps*45); this._genT=setTimeout(()=>{ this.setState({ results:res, generating:false }); this.persistSession(res, false); }, dur); }
+  openDetail(i){ this.setState({ detailIdx:i }); }
+  closeDetail(){ this.setState({ detailIdx:null }); }
+  saveConfig(){ const m=this.model(this.state.modelId); const ar=this._sizes[this.state.sizeIdx]; const title=(this.state.prompt||'Untitled').split(/[,.]/)[0].slice(0,28).trim() || 'Untitled'; const cfg={ id:'cfg'+Date.now(), title, mid:m.id, air:m.air, provider:m.provider, ar, steps:this.state.steps, cfg:this.state.cfg, numImages:this.state.numImages, negative:this.state.negativeOn?this.state.negative:'', prompt:this.state.prompt, ref:this.state.refSrc||'', savedAt:new Date().toISOString() }; const arr=[cfg].concat(this.state.configs); this.persistConfigs(arr); this.setState({ configs:arr, justSaved:true }); if(this._saveT) clearTimeout(this._saveT); this._saveT=setTimeout(()=>this.setState({ justSaved:false }), 1400); }
+  persistConfigs(arr){ this.writeState('undolphin-configs.state.json', arr); }
+  exportConfigs(){ try{ const data=JSON.stringify(this.state.configs,null,2); const blob=new Blob([data],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='undolphin-configs.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(url),800);}catch(e){} }
+  loadConfig(c){ const m=this.model(c.mid); const si=this._sizes.indexOf(c.ar); this.setState({ modelId:c.mid, prompt:c.prompt||'', sizeIdx: si<0?0:si, steps: Math.min(c.steps||this.state.steps, m.stepMax||50), cfg: c.cfg||this.state.cfg, numImages: c.numImages||this.state.numImages, negativeOn: !!(c.negative), negative: c.negative||'', refSrc: c.ref||'', detailIdx:null }); }
+  deleteConfig(id){ const arr=this.state.configs.filter(c=>c.id!==id); this.persistConfigs(arr); this.setState({ configs:arr }); }
+
+  pal(){
+    return this.state.theme==='light'
+      ? { bg:'#F4F5F6', panel:'#FFFFFF', subPanel:'#F8F9FA', pop:'#FFFFFF', line:'#e0e3e6', hair:'#eceef0', text:'#101317', muted:'#6e757f', faint:'#9aa1a9', barBg:'#0E1013', barLine:'#0E1013', segTrack:'#1b1f24', gf:'#e4e7ea', shadowA:0.14, lite:'lite' }
+      : { bg:'#0E1013', panel:'#16191C', subPanel:'#111417', pop:'#14181C', line:'#262b30', hair:'#1c2025', text:'#EDEFF1', muted:'#8b919a', faint:'#5f6671', barBg:'#000000', barLine:'#1c2025', segTrack:'#1b1f24', gf:'#1c2025', shadowA:0.55, lite:'' };
+  }
+
+  detailVals(P, accent, accentLite){
+    // builds the React element for the detail body (shared by drawer/modal/inspector)
+    const R=React; const i=this.state.detailIdx; if(i==null) return null;
+    const r=this.state.results[i]; if(!r) return null;
+    const m=this.model(r.mid); const cost=this.fmt(m.price);
+    const row=(label,val,mono)=>R.createElement('div',{style:{display:'flex',justifyContent:'space-between',gap:'12px',padding:'7px 0',borderBottom:'1px solid '+P.hair}},
+      R.createElement('span',{style:{fontFamily:"'JetBrains Mono',monospace",fontSize:'9px',letterSpacing:'0.06em',color:P.muted}},label),
+      R.createElement('span',{style:{fontFamily:mono?"'JetBrains Mono',monospace":"'Archivo',sans-serif",fontSize:'11px',color:P.text,textAlign:'right'}},val));
+    const btn=(label,primary,onClick)=>R.createElement('div',{onClick,style:{flex:1,textAlign:'center',cursor:'pointer',padding:'9px 0',fontSize:'11px',fontWeight:700,color:primary?'#fff':P.text,background:primary?accent:'transparent',border:'1px solid '+(primary?accent:P.line)}},label);
+    return R.createElement('div',{},
+      R.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}},
+        R.createElement('span',{style:{fontFamily:"'JetBrains Mono',monospace",fontSize:'9px',letterSpacing:'0.12em',color:P.muted}},'IMAGE DETAIL'),
+        R.createElement('span',{onClick:()=>this.closeDetail(),style:{cursor:'pointer',color:P.faint,fontSize:'16px',lineHeight:1}},'×')),
+      R.createElement('div',{style:{fontWeight:700,fontSize:'15px',letterSpacing:'-0.01em'}},m.name),
+      R.createElement('div',{style:{fontFamily:"'JetBrains Mono',monospace",fontSize:'9px',color:P.muted,marginTop:'3px'}},m.provider+' · '+m.air),
+      R.createElement('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',margin:'13px 0 4px',paddingTop:'11px',borderTop:'1px solid '+P.line}},
+        R.createElement('span',{style:{fontFamily:"'JetBrains Mono',monospace",fontSize:'9px',color:P.muted}},'COST / IMAGE'),
+        R.createElement('span',{style:{fontFamily:"'JetBrains Mono',monospace",fontSize:'17px',fontWeight:700,color:accentLite}},'$'+cost)),
+      R.createElement('div',{style:{fontFamily:"'JetBrains Mono',monospace",fontSize:'9px',color:P.muted,margin:'14px 0 4px',letterSpacing:'0.1em'}},'PROMPT'),
+      R.createElement('div',{style:{fontSize:'12px',lineHeight:1.55,color:P.text}},this.state.prompt),
+      this.state.negativeOn && this.state.negative ? R.createElement('div',{style:{fontFamily:"'JetBrains Mono',monospace",fontSize:'9px',color:P.muted,margin:'12px 0 4px',letterSpacing:'0.1em'}},'NEGATIVE') : null,
+      this.state.negativeOn && this.state.negative ? R.createElement('div',{style:{fontSize:'12px',lineHeight:1.55,color:P.muted}},this.state.negative) : null,
+      R.createElement('div',{style:{margin:'14px 0 2px'}},
+        row('SEED',String(r.seed),true), row('STEPS',String(this.state.steps),true), row('CFG',String(this.state.cfg),true),
+        row('SIZE',r.ar+' · '+this.arDims(r.ar),true), row('PROVIDER',m.provider,false), row('AIR ID',m.air,true)),
+      R.createElement('div',{style:{display:'flex',gap:'8px',marginTop:'14px'}}, btn('Save config',true,()=>this.saveConfig()), btn('Regenerate',false,()=>this.generate())));
+  }
+
+  renderVals(){
+    const st=this.state; const P=this.pal();
+    const accent = this.props.accent || '#b81414';
+    const hexA=(h,a)=>{ h=h.replace('#',''); const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16); return 'rgba('+r+','+g+','+b+','+a+')'; };
+    const lighten=(h,t)=>{ h=h.replace('#',''); let r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16); r=Math.round(r+(255-r)*t); g=Math.round(g+(255-g)*t); b=Math.round(b+(255-b)*t); return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join(''); };
+    const darken=(h,t)=>{ h=h.replace('#',''); let r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16); r=Math.round(r*(1-t)); g=Math.round(g*(1-t)); b=Math.round(b*(1-t)); return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join(''); };
+    const accentLite = st.theme==='light' ? (this.props.accentInk || darken(accent,0.25)) : lighten(accent,0.42);
+    const accentDark = darken(accent,0.4);
+    const m = this.model(st.modelId);
+
+    // view flags
+    const view=st.view;
+    const viewTabs=[['console','CONSOLE'],['gallery','GALLERY'],['workbench','WORKBENCH']].map(v=>({
+      label:v[1], onPick:()=>this.setView(v[0]),
+      bg: view===v[0]?accent:'transparent', color: view===v[0]?'#fff':'#9aa1a9'
+    }));
+
+    // model list filtering
+    const q=st.modelSearch.trim().toLowerCase();
+    let list=this.models.slice();
+    if(view==='console'){
+      if(st.modelTab==='favs') list=list.filter(x=>st.favs.includes(x.id));
+      if(q) list=list.filter(x=>x.name.toLowerCase().includes(q)||x.provider.toLowerCase().includes(q)||x.tag.toLowerCase().includes(q));
+    } else {
+      if(st.filter==='favs') list=list.filter(x=>st.favs.includes(x.id));
+      else if(st.filter!=='all') list=list.filter(x=>x.tag.toLowerCase().includes(st.filter));
+      if(q) list=list.filter(x=>x.name.toLowerCase().includes(q)||x.provider.toLowerCase().includes(q)||x.tag.toLowerCase().includes(q));
+    }
+    const modelRows=list.map(x=>{ const isFav=st.favs.includes(x.id); const isSel=x.id===st.modelId; return {
+      name:x.name, provider:x.provider, price:this.fmt(x.price), tag:x.tag, thumbId:'th_'+x.id, thumbSrc:'https://picsum.photos/seed/th'+x.id+'/64/64',
+      bg: isSel?hexA(accent, st.theme==='light'?0.08:0.16):'transparent',
+      wbBorder: isSel?('2px solid '+accent):'2px solid transparent',
+      starFill: isFav?accent:'none', starStroke: isFav?accent:P.faint,
+      onPick:()=>this.pickModel(x.id), onFav:()=>this.toggleFav(x.id)
+    };});
+
+    const modelTabs=[['featured','Featured'],['search','Search'],['favs','★ Favs']].map(t=>({
+      label:t[1], onPick:()=>this.setModelTab(t[0]),
+      color: st.modelTab===t[0]?accent:P.muted, bar: st.modelTab===t[0]?accent:'transparent'
+    }));
+    const filterRows=[['all','ALL'],['favs','★ FAVS'],['flux','FLUX']].map(f=>({
+      label:f[1], onPick:()=>this.setFilter(f[0]),
+      bg: st.filter===f[0]?accent:(st.theme==='light'?'#eef0f2':'#1b1f24'), color: st.filter===f[0]?'#fff':P.muted
+    }));
+
+    // responsive breakpoints
+    const w=st.w||1200; const narrow = w<820; const mid = w<1040;
+
+    // sizes — filtered to the selected model's supported ratios
+    const allowed = m.sizes || this._sizes;
+    const sizeRows=this._sizes.map((s,i)=>({ s, i })).filter(o=>allowed.indexOf(o.s)>=0).map(o=>({ label:o.s, onPick:()=>this.pickSize(o.i),
+      border: st.sizeIdx===o.i?accent:P.line, bg: st.sizeIdx===o.i?hexA(accent,st.theme==='light'?0.1:0.2):'transparent', color: st.sizeIdx===o.i?accentLite:P.text }));
+    const stepMax = m.stepMax||50;
+
+    // tiles (results grid) — generating shows shimmer placeholders
+    const gen = st.generating;
+    const uniform = gen ? true : !st.mixed;
+    const genAr = this._sizes[st.sizeIdx];
+    const tileSrc = gen ? new Array(st.genCount).fill(0).map((_,i)=>({ id:'gen'+i, ar:genAr })) : st.results;
+    const tiles=tileSrc.map((r,i)=>{ const sel=!gen&&st.detailIdx===i; const wh=this.arWH(r.ar,512); return {
+      id:r.id, pad:this.arPad(r.ar), src: gen?'' : 'https://picsum.photos/seed/'+r.id+'/'+wh[0]+'/'+wh[1],
+      loading: gen, ready: !gen,
+      outline: sel?('2px solid '+accent):'none',
+      cellStyle: uniform ? '' : 'break-inside:avoid; margin-bottom:10px;',
+      onOpen: gen?(()=>{}):(()=>this.openDetail(i))
+    };});
+    const gridCols = narrow ? 2 : (mid ? 3 : 4);
+    const gridContainerStyle = uniform
+      ? 'display:grid; grid-template-columns:repeat('+gridCols+', 1fr); gap:10px;'
+      : 'columns:'+gridCols+'; column-gap:10px;';
+    const gridModeLabel = gen ? ('RENDERING '+st.genCount+' · '+m.name.toUpperCase()) : (uniform ? ('UNIFORM · '+this._sizes[st.sizeIdx]+' · '+m.name.toUpperCase()) : 'MASONRY · MIXED SESSION');
+
+    // detail
+    const anyDetail = st.detailIdx!=null;
+    const detailOpen = false;
+    const modalOpen = anyDetail;
+    const dr = anyDetail ? st.results[st.detailIdx] : null;
+    const detailBody = this.detailVals(P, accent, accentLite);
+
+    // configs
+    const configRows=st.configs.map(c=>{ const cm=this.model(c.mid); return { title:c.title, meta:cm.name+' · '+c.ar, onLoad:()=>this.loadConfig(c), onDelete:()=>this.deleteConfig(c.id) }; });
+
+    const gfImg = st.theme==='light'
+      ? 'linear-gradient('+P.gf+' 1px, transparent 1px), linear-gradient(90deg, '+P.gf+' 1px, transparent 1px)'
+      : 'radial-gradient(circle, '+P.gf+' 0.9px, transparent 0.9px)';
+    const gfSize = st.theme==='light' ? '26px 26px' : '17px 17px';
+
+    return {
+      rootRef:(el)=>{ this.rootEl=el; },
+      stepsRef:(el)=>{ this.stepsEl=el; }, numRef:(el)=>{ this.numEl=el; },
+      // theme/tokens
+      isDark: st.theme==='dark', isLight: st.theme==='light', toggleTheme:()=>this.toggleTheme(),
+      bg:P.bg, panel:P.panel, subPanel:P.subPanel, pop:P.pop, line:P.line, hair:P.hair, text:P.text, muted:P.muted, faint:P.faint,
+      barBg:P.barBg, barLine:P.barLine, segTrack:P.segTrack, shadowA:P.shadowA, liteClass:P.lite,
+      gfImg, gfSize, shimGlow: st.theme==='light'?'rgba(0,0,0,0.05)':'rgba(255,255,255,0.06)',
+      accent, accentLite, accentDark, negTrack: st.negativeOn?accent:P.line, negKnob: st.negativeOn?'14px':'2px',
+      // views
+      viewTabs, isConsole:view==='console', isGallery:view==='gallery', isWorkbench:view==='workbench',
+      // model
+      toggleModelMenu:()=>this.toggleModelMenu(), modelMenu:st.modelMenu,
+      selName:m.name, selProvider:m.provider, selPrice:this.fmt(m.price), selThumbId:'th_'+m.id, selThumbSrc:'https://picsum.photos/seed/th'+m.id+'/64/64',
+      modelTabs, modelRows, noModels:modelRows.length===0, modelSearch:st.modelSearch, onSearchInput:(e)=>this.onSearchInput(e),
+      filterRows,
+      // prompt/controls
+      prompt:st.prompt, onPromptInput:(e)=>this.onPromptInput(e),
+      negativeOn:st.negativeOn, toggleNegative:()=>this.toggleNegative(), negative:st.negative, onNegInput:(e)=>this.onNegInput(e),
+      sizeRows, sizeLabel:this._sizes[st.sizeIdx],
+      steps:st.steps, stepsPct:((st.steps-1)/(stepMax-1)*100).toFixed(1), stepsClick:(e)=>this.sliderClick(e,'stepsEl',1,stepMax,'steps'), stepMax,
+      numImages:st.numImages, numPct:((st.numImages-1)/(20-1)*100).toFixed(1), numClick:(e)=>this.sliderClick(e,'numEl',1,20,'numImages'),
+      // actions
+      generate:()=>this.generate(), saveConfig:()=>this.saveConfig(), saveLabel: st.justSaved?'Saved ✓':'Save',
+      generating:st.generating, genLabel: st.generating?'Rendering…':'Generate ↵', genBg: st.generating?accentDark:accent,
+      liveCost:this.fmt(m.price*st.numImages),
+      // responsive
+      narrow, mid,
+      consoleWrap: narrow?'display:flex; flex-direction:column; min-height:590px;':'display:flex; align-items:stretch; min-height:590px;',
+      railStyle: narrow?'width:100%; flex:none; border-right:none; border-bottom:1px solid '+P.line+';':'width:290px; flex:none; border-right:1px solid '+P.line+';',
+      railMax: narrow?'max-height:none;':'max-height:calc(100vh - 49px);',
+      wbSideDisplay: mid?'none':'block',
+      // grid
+      tiles, gridContainerStyle, gridModeLabel, galleryCols:gridCols, wbCols: narrow?1:2,
+      // detail
+      detailOpen, modalOpen, detailClosed:true,
+      detailBody,
+      detailImgId: dr?dr.id:'none', detailPad: dr?this.arPad(dr.ar):'75', detailImgSrc: dr?('https://picsum.photos/seed/'+dr.id+'/'+this.arWH(dr.ar,900)[0]+'/'+this.arWH(dr.ar,900)[1]):'',
+      closeDetail:()=>this.closeDetail(), stop:(e)=>{ e.stopPropagation(); },
+      // configs
+      configRows, hasConfigs:st.configs.length>0, noConfigs:st.configs.length===0, configCount:st.configs.length,
+      refUrl:st.refUrl, onRefUrl:(e)=>this.onRefUrl(e), addRef:()=>this.addRef(), refSrc:st.refSrc, exportConfigs:()=>this.exportConfigs()
+    };
+  }
+}
+</script>
+</body>
+</html>

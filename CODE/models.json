@@ -1,0 +1,84 @@
+[
+  {
+    "id": "juggernaut-pro",
+    "name": "Juggernaut Pro Flux",
+    "provider": "RunDiffusion",
+    "air": "rundiffusion:130@100",
+    "tag": "QUALITY",
+    "free": false,
+    "price": 0.006,
+    "default_steps": 28,
+    "step_max": 50,
+    "sizes": [
+      "1:1",
+      "16:9",
+      "9:16",
+      "3:2",
+      "2:3"
+    ],
+    "note": "Flux-based, top photoreal quality via Runware.",
+    "img": "optional",
+    "imgMax": 1
+  },
+  {
+    "id": "flux-schnell",
+    "name": "FLUX Schnell",
+    "provider": "Black Forest / Runware",
+    "air": "runware:100@1",
+    "tag": "FAST",
+    "free": false,
+    "price": 0.0013,
+    "default_steps": 4,
+    "step_max": 8,
+    "sizes": [
+      "1:1",
+      "16:9",
+      "9:16",
+      "3:2",
+      "2:3"
+    ],
+    "note": "4-step distilled Flux. Fast + cheap.",
+    "img": "optional",
+    "imgMax": 1
+  },
+  {
+    "id": "juggernaut-lightning",
+    "name": "Juggernaut Lightning Flux",
+    "provider": "RunDiffusion",
+    "air": "rundiffusion:110@101",
+    "tag": "FAST",
+    "free": false,
+    "price": 0.002,
+    "default_steps": 6,
+    "step_max": 12,
+    "sizes": [
+      "1:1",
+      "16:9",
+      "9:16",
+      "3:2",
+      "2:3"
+    ],
+    "note": "Lightning-fast Flux merge, low step count.",
+    "img": "optional",
+    "imgMax": 1
+  },
+  {
+    "id": "sdxl-copax",
+    "name": "Copax Cute XL (SDXL)",
+    "provider": "Civitai / Runware",
+    "air": "civitai:119226@140015",
+    "tag": "SDXL",
+    "free": false,
+    "price": 0.0013,
+    "default_steps": 30,
+    "step_max": 50,
+    "sizes": [
+      "1:1",
+      "16:9",
+      "9:16"
+    ],
+    "note": "SDXL checkpoint. Lighter, stylized.",
+    "img": "optional",
+    "imgMax": 1
+  }
+]
