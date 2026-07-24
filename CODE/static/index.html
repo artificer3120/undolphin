@@ -325,7 +325,7 @@ function tileHtml(r,kind,i){
       <div class="abtn" title="Reuse as prompt" data-reuse="${i}">⟲</div>
       <div class="abtn" title="Download" data-dl="${r.url}">⇩</div>
     </div>
-    <img src="${r.url}" loading="lazy"></div>${meta}</div>`;
+    <img src="${r.url}"${kind==='g'?' loading="lazy"':''}></div>${meta}</div>`;
 }
 function wireTiles(el,items,openFn){
   el.querySelectorAll('.selbox').forEach(b=>b.onclick=e=>{
