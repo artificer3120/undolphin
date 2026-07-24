@@ -176,6 +176,7 @@
         <input class="gsearch" id="gq" placeholder="Search prompts, tags, models…" style="max-width:420px">
         <span class="mono" style="font-size:9px;letter-spacing:.1em;color:var(--muted)" id="gcount"></span>
       </div>
+      <div id="gauthors" style="margin-bottom:6px"></div>
       <div id="gchips" style="margin-bottom:10px"></div>
       <div class="grid" id="ggrid"></div>
     </div>
@@ -318,7 +319,7 @@ function toggleMeta(){
 }
 function tileHtml(r,kind,i){
   const sel=SELECTED.has(r.id)?' selected':'';
-  const meta=META?`<div class="meta"><span>${r.model_name||''}</span><span>${(r.width||r.w||'?')}×${(r.height||r.h||'?')} · ${r.cost>0?'$'+r.cost:'free'}</span></div>`:'';
+  const meta=META?`<div class="meta"><span>${r.author&&r.author!=='operator'?'@'+r.author+' · ':''}${r.model_name||''}</span><span>${(r.width||r.w||'?')}×${(r.height||r.h||'?')} · ${r.cost>0?'$'+r.cost:'free'}</span></div>`:'';
   return `<div class="cell"><div class="tile${sel}" data-${kind}="${i}">
     <div class="selbox" data-selid="${r.id}">${SELECTED.has(r.id)?'✓':''}</div>
     <div class="acts">
@@ -389,7 +390,7 @@ function renderGrid(){
 let _rsz; window.addEventListener('resize',()=>{clearTimeout(_rsz);_rsz=setTimeout(()=>{renderGrid();if(VIEW==='gallery')renderGallery();},150);});
 
 // ---- gallery view: full-history masonry + search + tags + detail drawer ----
-let VIEW='session', GITEMS=[], GTAG='', DRAWER_ID=null; let _gq;
+let VIEW='session', GITEMS=[], GTAG='', GAUTHOR='', DRAWER_ID=null; let _gq;
 function setView(v){
   VIEW=v;
   document.querySelector('.wrap').style.display=(v==='session')?'flex':'none';
@@ -402,10 +403,17 @@ async function refreshGallery(){
   const p=new URLSearchParams({all:'1'});
   if($('gq').value.trim())p.set('q',$('gq').value.trim());
   if(GTAG)p.set('tag',GTAG);
+  if(GAUTHOR)p.set('author',GAUTHOR);
   GITEMS=await (await fetch('/api/session?'+p)).json();
   $('gcount').textContent=GITEMS.length+' IMAGES';
-  renderTagChips(); renderGallery();
+  renderAuthorChips(); renderTagChips(); renderGallery();
   if(DRAWER_ID)openDrawerById(DRAWER_ID);
+}
+async function renderAuthorChips(){
+  const authors=await (await fetch('/api/authors')).json();
+  $('gauthors').innerHTML=authors.map(([a,c])=>
+    `<span class="tagchip ${GAUTHOR===a?'on':''}" data-a="${a}">@${a} · ${c}</span>`).join('');
+  $('gauthors').querySelectorAll('.tagchip').forEach(ch=>ch.onclick=()=>{GAUTHOR=(GAUTHOR===ch.dataset.a)?'':ch.dataset.a;refreshGallery();});
 }
 async function renderTagChips(){
   const vocab=await (await fetch('/api/tags')).json();
@@ -455,7 +463,7 @@ function openDrawerById(id){
   const r=GITEMS.find(x=>x.id===id); const d=$('drawer');
   if(!r){d.style.display='none';DRAWER_ID=null;renderGallery();return;}
   DRAWER_ID=id;
-  const rows=[['SEED',r.seed],['STEPS',r.steps],['SIZE',(r.width||r.w)+'×'+(r.height||r.h)],['MODEL',r.model_name],['COST',r.cost>0?'$'+r.cost:'free']];
+  const rows=[['AUTHOR',r.author||'operator'],['SEED',r.seed],['STEPS',r.steps],['SIZE',(r.width||r.w)+'×'+(r.height||r.h)],['MODEL',r.model_name],['COST',r.cost>0?'$'+r.cost:'free']];
   if(r.ref)rows.push(['SEED IMG',String(r.ref).slice(0,32)+'…']);
   d.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <span class="mono" style="font-size:9px;letter-spacing:.12em;color:var(--muted)">IMAGE DETAIL</span>
@@ -483,7 +491,7 @@ function openDrawerById(id){
   $('metaToggle').classList.toggle('on',META);})();
 function openDetail(i){
   const r=RESULTS[i]; if(!r||r.loading)return;
-  const rows=[['SEED',r.seed],['STEPS',r.steps],['SIZE',r.width+'×'+r.height],['MODEL',r.model_name],['PROVIDER',r.provider],['COST',r.cost>0?'$'+r.cost:'free']];
+  const rows=[['AUTHOR',r.author||'operator'],['SEED',r.seed],['STEPS',r.steps],['SIZE',r.width+'×'+r.height],['MODEL',r.model_name],['PROVIDER',r.provider],['COST',r.cost>0?'$'+r.cost:'free']];
   if(r.ref)rows.push(['SEED IMG',r.ref.length>44?r.ref.slice(0,41)+'…':r.ref]);
   $('modalRoot').innerHTML=`<div class="modal" id="mm"><div class="card" onclick="event.stopPropagation()">
     <img src="${r.url}">

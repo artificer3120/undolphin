@@ -25,4 +25,10 @@ tags: [undolphin, playbook, undolphin_playbook, runbook]
 
 Gallery and state count as operator product — never clean them as build debris.
 
+**Agents rendering through the API SIGN THEIR WORK**: pass `"author": "<your nomen>"`
+in the `/api/generate` body. The browser UI signs as `operator` by default. Authorship
+rides the session record, shows in META strips and detail views, and filters the
+gallery (`/api/session?all=1&author=<nomen>`, vocabulary at `/api/authors`). Direct
+writes bypassing the API break the record — use the API.
+
 Related: [[what-undolphin-is|What unDolphin is]]

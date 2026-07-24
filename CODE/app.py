@@ -146,6 +146,8 @@ def api_generate():
     n = min(int(d.get("n") or 1), 8)
     refs = d.get("refs") or []
     ref = refs[0] if refs else None
+    # authorship: agents pass their nomen; the browser UI omits it and signs as operator
+    author = (d.get("author") or "operator").strip()[:40]
     if ref and (model.get("img") or "none") == "none":
         return jsonify({"error": "%s takes no reference image" % model["name"]}), 400
 
@@ -168,6 +170,7 @@ def api_generate():
                "seed": rseed, "width": width, "height": height, "steps": steps,
                "prompt": prompt, "negative": negative,
                "ref": (ref if isinstance(ref, str) and not ref.startswith("data:") else ("data-uri" if ref else None)),
+               "author": author,
                "cost": rcost if rcost is not None else model.get("price", 0),
                "ts": int(time.time())}
         results.append(rec)
@@ -249,6 +252,9 @@ def api_session():
     if request.args.get("all"):
         q = (request.args.get("q") or "").strip().lower()
         tag = (request.args.get("tag") or "").strip().lower()
+        author = (request.args.get("author") or "").strip().lower()
+        if author:
+            rows = [r for r in rows if (r.get("author") or "operator").lower() == author]
         if tag:
             rows = [r for r in rows if tag in [t.lower() for t in r.get("tags", [])]]
         if q:
@@ -284,6 +290,22 @@ def api_set_tags(iid):
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(out) + "\n")
     return jsonify({"ok": True, "tags": tags})
+
+
+@app.route("/api/authors")
+def api_authors():
+    path = os.path.join(STATE, "session.jsonl")
+    counts = {}
+    if os.path.isfile(path):
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                try:
+                    r = json.loads(line)
+                except ValueError:
+                    continue
+                a = r.get("author") or "operator"
+                counts[a] = counts.get(a, 0) + 1
+    return jsonify(sorted(counts.items(), key=lambda x: -x[1]))
 
 
 @app.route("/api/tags")
