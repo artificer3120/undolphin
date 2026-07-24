@@ -134,6 +134,11 @@ def api_models():
 def api_generate():
     d = request.get_json(force=True)
     model = MODEL_BY_ID.get(d.get("model"))
+    if not model and d.get("air"):
+        # catalog model: generate straight off the AIR id, registry-free
+        model = {"id": "catalog", "air": d["air"], "name": d.get("model_name") or d["air"],
+                 "provider": "Runware catalog", "img": d.get("img") or "optional",
+                 "default_steps": None, "price": 0}
     if not model:
         return jsonify({"error": "unknown model '%s'" % d.get("model")}), 400
     prompt = (d.get("prompt") or "").strip()
@@ -294,7 +299,33 @@ def api_set_tags(iid):
     return jsonify({"ok": True, "tags": tags})
 
 
-@app.route("/api/authors")
+@app.route("/api/balance")
+def api_balance():
+    # accountManagement.getDetails carries team + key metadata -- return ONLY the number.
+    res, err = _runware_call({"taskType": "accountManagement", "taskUUID": str(uuid.uuid4()),
+                              "operation": "getDetails"})
+    if err:
+        return jsonify({"error": err}), 502
+    return jsonify({"balance": res.get("balance")})
+
+
+@app.route("/api/catalog")
+def api_catalog():
+    q = (request.args.get("q") or "").strip()
+    if not q:
+        return jsonify([])
+    task = {"taskType": "modelSearch", "taskUUID": str(uuid.uuid4()),
+            "search": q, "limit": 20}
+    res, err = _runware_call(task)
+    if err:
+        return jsonify({"error": err}), 502
+    out = []
+    for m in res.get("results", []):
+        caps = m.get("capabilities") or []
+        out.append({"name": m.get("name"), "air": m.get("air"),
+                    "category": m.get("category"), "comment": (m.get("comment") or "")[:140],
+                    "img": "optional" if "io:image-to-image" in caps else "none"})
+    return jsonify(out)
 def api_authors():
     path = os.path.join(STATE, "session.jsonl")
     counts = {}

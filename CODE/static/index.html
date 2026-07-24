@@ -110,6 +110,7 @@
   </div>
   <div class="vtab" id="metaToggle" style="margin-left:8px" onclick="toggleMeta()">META</div>
   <div style="flex:1"></div>
+  <div class="mono" style="font-size:10px;color:var(--muted);margin-right:14px" id="balance"></div>
   <div class="mono" style="font-size:11.5px" id="topcost">$0.00</div>
 </div>
 
@@ -118,6 +119,10 @@
     <div class="lbl">Model</div>
     <select class="field" id="model"></select>
     <div class="mono" id="modelnote" style="font-size:8.5px;color:var(--muted);margin-top:5px"></div>
+
+    <div class="lbl">Catalog <span class="mono" style="font-size:8px;color:var(--faint)">FULL RUNWARE LIBRARY</span></div>
+    <input class="gsearch" id="catq" placeholder="Search every model…">
+    <div id="catres" style="max-height:180px;overflow-y:auto"></div>
 
     <div class="lbl">Prompt</div>
     <textarea id="prompt" rows="4" placeholder="Describe your image…">a lone traveller in a ruined stone courtyard, dawn light, cinematic, volumetric fog</textarea>
@@ -205,7 +210,7 @@ async function boot(){
   pickModel(MODELS[0].id);
   CONFIGS=await (await fetch('/api/configs')).json(); renderConfigs();
   RESULTS=await (await fetch('/api/session')).json(); renderGrid();
-  wire();
+  wire(); wireCatalog(); refreshBalance();
 }
 function pickModel(id){
   MODEL=MODELS.find(m=>m.id===id)||MODELS[0];
@@ -272,12 +277,44 @@ function addRefFromInput(){
 }
 function updateCost(){
   const n=+$('num').value;
-  if(MODEL.free){
+  if(MODEL.id==='catalog'){
+    $('cost').textContent=`${n} image${n>1?'s':''} · catalog model — real cost returns per render`;
+    $('mcost').textContent='catalog'; $('topcost').textContent='—';
+  } else if(MODEL.free){
     $('cost').textContent=`${n} image${n>1?'s':''} · free`; $('mcost').textContent='free'; $('topcost').textContent='$0.00';
   } else {
     const per=MODEL.price||0, tot=per*n;
     $('cost').textContent=`≈ $${tot.toFixed(3)} · ${n} × $${per} · Runware`; $('mcost').textContent='$'+tot.toFixed(3); $('topcost').textContent='$'+tot.toFixed(2);
   }
+}
+async function refreshBalance(){
+  try{const j=await (await fetch('/api/balance')).json();
+    if(j.balance!=null)$('balance').textContent='BAL $'+(+j.balance).toFixed(3);
+  }catch(e){}
+}
+let _cq;
+function wireCatalog(){
+  $('catq').oninput=()=>{clearTimeout(_cq);_cq=setTimeout(searchCatalog,350);};
+}
+async function searchCatalog(){
+  const q=$('catq').value.trim();
+  if(!q){$('catres').innerHTML='';return;}
+  const res=await (await fetch('/api/catalog?q='+encodeURIComponent(q))).json();
+  $('catres').innerHTML=(res||[]).map((m,i)=>
+    `<div class="cfg" data-c="${i}" style="cursor:pointer"><div class="t"><b>${m.name}</b><div>${m.air} · ${m.category||''}${m.img==='optional'?' · img2img':''}</div></div></div>`).join('')||'<div class="mono" style="font-size:9px;color:var(--faint);padding:6px 0">no matches</div>';
+  $('catres').querySelectorAll('[data-c]').forEach(el=>el.onclick=()=>pickCatalog(res[+el.dataset.c]));
+}
+function pickCatalog(m){
+  MODEL={id:'catalog',air:m.air,name:m.name,provider:'Runware catalog',img:m.img,imgMax:1,
+         sizes:['1:1','16:9','9:16','3:2','2:3'],step_max:50,default_steps:28,price:0,note:m.comment||''};
+  $('modelnote').textContent='CATALOG · '+m.air+(m.comment?' · '+m.comment:'');
+  $('mname').textContent=m.name;
+  $('steps').max=50;$('steps').value=28;$('stepsv').textContent='28 / 50';
+  const sizes=MODEL.sizes; if(!sizes.includes(SIZE))SIZE=sizes[0];
+  $('sizes').innerHTML=sizes.map(s=>`<div class="chip ${s===SIZE?'on':''}" data-s="${s}">${s}</div>`).join('');
+  $('sizes').querySelectorAll('.chip').forEach(c=>c.onclick=()=>{SIZE=c.dataset.s;
+    $('sizes').querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x.dataset.s===SIZE));});
+  renderRefSection(); updateCost();
 }
 function wire(){
   $('negon').onchange=e=>$('negative').style.display=e.target.checked?'block':'none';
@@ -295,6 +332,7 @@ async function generate(){
   const n=+$('num').value;
   if((MODEL.img||'none')==='required'&&!(REF&&REF.val)){$('err').innerHTML='<div class="err">'+MODEL.name+' requires a reference image.</div>';return;}
   const body={model:MODEL.id,prompt:$('prompt').value,negative:$('negon').checked?$('negative').value:'',width:w,height:h,steps:+$('steps').value,n,refs:(REF&&REF.val&&(MODEL.img||'none')!=='none')?[REF.val]:[]};
+  if(MODEL.id==='catalog'){body.air=MODEL.air;body.model_name=MODEL.name;body.img=MODEL.img;}
   btn.disabled=true; btn.textContent='Rendering…'; $('err').innerHTML=''; $('status').textContent='RENDERING '+n+' · '+MODEL.name.toUpperCase();
   // placeholders
   RESULTS = Array.from({length:n},(_,i)=>({loading:true,id:'ph'+i,w:w,h:h})).concat(RESULTS); renderGrid();
@@ -305,7 +343,7 @@ async function generate(){
     if(!r.ok){ $('err').innerHTML='<div class="err">'+(j.error||'failed')+(j.detail?'\n'+j.detail.join('\n'):'')+'</div>'; }
     else { RESULTS=(j.results||[]).concat(RESULTS); if(j.errors&&j.errors.length)$('err').innerHTML='<div class="err">'+j.errors.length+' of '+n+' failed:\n'+j.errors[0]+'</div>'; }
   }catch(e){ RESULTS=RESULTS.filter(x=>!x.loading); $('err').innerHTML='<div class="err">'+e+'</div>'; }
-  renderGrid(); btn.disabled=false; btn.textContent='Generate ↵'; $('status').textContent='';
+  renderGrid(); btn.disabled=false; btn.textContent='Generate ↵'; $('status').textContent=''; refreshBalance();
 }
 function colCount(){
   const w=$('grid').clientWidth||window.innerWidth;
