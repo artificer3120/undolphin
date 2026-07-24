@@ -37,10 +37,9 @@
   .btn.ghost{border:1px solid var(--line);background:var(--sub);color:var(--text);font-weight:600;}
   .btn.gen{background:var(--accent);color:#fff;}
   .btn.gen:disabled{background:#5a1414;cursor:default;}
-  .grid{columns:4;column-gap:12px;}
-  @media (max-width:1500px){.grid{columns:3;}}
-  @media (max-width:1100px){.grid{columns:2;}}
-  .cell{break-inside:avoid;margin-bottom:12px;}
+  .grid{display:flex;gap:12px;align-items:flex-start;}
+  .col{flex:1;min-width:0;}
+  .cell{margin-bottom:12px;}
   .tile{position:relative;border:1px solid var(--line);overflow:hidden;cursor:pointer;background:var(--sub);}
   .tile img{width:100%;height:auto;display:block;}
   .tile.ph{padding-bottom:100%;}
@@ -256,14 +255,29 @@ async function generate(){
   }catch(e){ RESULTS=RESULTS.filter(x=>!x.loading); $('err').innerHTML='<div class="err">'+e+'</div>'; }
   renderGrid(); btn.disabled=false; btn.textContent='Generate ↵'; $('status').textContent='';
 }
+function colCount(){
+  const w=$('grid').clientWidth||window.innerWidth;
+  return w>1250?4:(w>850?3:2);
+}
 function renderGrid(){
-  $('grid').innerHTML=RESULTS.map((r,i)=>{
-    if(r.loading){const pad=(r.h&&r.w)?(100*r.h/r.w):100;
-      return `<div class="cell"><div class="tile ph" style="padding-bottom:${pad}%"><div class="spin"><div></div></div></div></div>`;}
-    return `<div class="cell"><div class="tile" data-i="${i}"><img src="${r.url}" loading="lazy"></div></div>`;
-  }).join('');
+  // true masonry: newest packs left-to-right into the currently-shortest column,
+  // heights predicted from each record's known render ratio (no DOM measuring).
+  const n=colCount();
+  const cols=Array.from({length:n},()=>({html:'',h:0}));
+  RESULTS.forEach((r,i)=>{
+    const ratio=(r.h&&r.w)?(r.h/r.w):1;
+    let best=0; for(let c=1;c<n;c++) if(cols[c].h<cols[best].h) best=c;
+    if(r.loading){
+      cols[best].html+=`<div class="cell"><div class="tile ph" style="padding-bottom:${100*ratio}%"><div class="spin"><div></div></div></div></div>`;
+    } else {
+      cols[best].html+=`<div class="cell"><div class="tile" data-i="${i}"><img src="${r.url}" loading="lazy"></div></div>`;
+    }
+    cols[best].h+=ratio;
+  });
+  $('grid').innerHTML=cols.map(c=>`<div class="col">${c.html}</div>`).join('');
   $('grid').querySelectorAll('.tile[data-i]').forEach(t=>t.onclick=()=>openDetail(+t.dataset.i));
 }
+let _rsz; window.addEventListener('resize',()=>{clearTimeout(_rsz);_rsz=setTimeout(renderGrid,150);});
 function openDetail(i){
   const r=RESULTS[i]; if(!r||r.loading)return;
   const rows=[['SEED',r.seed],['STEPS',r.steps],['SIZE',r.width+'×'+r.height],['MODEL',r.model_name],['PROVIDER',r.provider],['COST',r.cost>0?'$'+r.cost:'free']];
