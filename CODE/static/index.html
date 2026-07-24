@@ -37,9 +37,14 @@
   .btn.ghost{border:1px solid var(--line);background:var(--sub);color:var(--text);font-weight:600;}
   .btn.gen{background:var(--accent);color:#fff;}
   .btn.gen:disabled{background:#5a1414;cursor:default;}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
-  .tile{position:relative;border:1px solid var(--line);overflow:hidden;cursor:pointer;background:var(--sub);aspect-ratio:1/1;}
-  .tile img{width:100%;height:100%;object-fit:cover;display:block;}
+  .grid{columns:4;column-gap:12px;}
+  @media (max-width:1500px){.grid{columns:3;}}
+  @media (max-width:1100px){.grid{columns:2;}}
+  .cell{break-inside:avoid;margin-bottom:12px;}
+  .tile{position:relative;border:1px solid var(--line);overflow:hidden;cursor:pointer;background:var(--sub);}
+  .tile img{width:100%;height:auto;display:block;}
+  .tile.ph{padding-bottom:100%;}
+  .tile .spin{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
   .tile .spin{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
   .spin div{width:26px;height:26px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;}
   @keyframes sp{to{transform:rotate(360deg);}}
@@ -241,7 +246,7 @@ async function generate(){
   const body={model:MODEL.id,prompt:$('prompt').value,negative:$('negon').checked?$('negative').value:'',width:w,height:h,steps:+$('steps').value,n,refs:(REF&&REF.val&&(MODEL.img||'none')!=='none')?[REF.val]:[]};
   btn.disabled=true; btn.textContent='Rendering…'; $('err').innerHTML=''; $('status').textContent='RENDERING '+n+' · '+MODEL.name.toUpperCase();
   // placeholders
-  RESULTS = Array.from({length:n},(_,i)=>({loading:true,id:'ph'+i})).concat(RESULTS); renderGrid();
+  RESULTS = Array.from({length:n},(_,i)=>({loading:true,id:'ph'+i,w:w,h:h})).concat(RESULTS); renderGrid();
   try{
     const r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const j=await r.json();
@@ -253,8 +258,9 @@ async function generate(){
 }
 function renderGrid(){
   $('grid').innerHTML=RESULTS.map((r,i)=>{
-    if(r.loading)return `<div class="tile"><div class="spin"><div></div></div></div>`;
-    return `<div class="tile" data-i="${i}"><img src="${r.url}" loading="lazy"></div>`;
+    if(r.loading){const pad=(r.h&&r.w)?(100*r.h/r.w):100;
+      return `<div class="cell"><div class="tile ph" style="padding-bottom:${pad}%"><div class="spin"><div></div></div></div></div>`;}
+    return `<div class="cell"><div class="tile" data-i="${i}"><img src="${r.url}" loading="lazy"></div></div>`;
   }).join('');
   $('grid').querySelectorAll('.tile[data-i]').forEach(t=>t.onclick=()=>openDetail(+t.dataset.i));
 }
