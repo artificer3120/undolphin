@@ -256,7 +256,9 @@ def api_session():
         if author:
             rows = [r for r in rows if (r.get("author") or "operator").lower() == author]
         if tag:
-            rows = [r for r in rows if tag in [t.lower() for t in r.get("tags", [])]]
+            want = [t for t in tag.split(",") if t]
+            rows = [r for r in rows
+                    if all(t in [x.lower() for x in r.get("tags", [])] for t in want)]
         if q:
             def hit(r):
                 hay = " ".join([r.get("prompt") or "", r.get("model_name") or "",

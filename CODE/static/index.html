@@ -390,7 +390,7 @@ function renderGrid(){
 let _rsz; window.addEventListener('resize',()=>{clearTimeout(_rsz);_rsz=setTimeout(()=>{renderGrid();if(VIEW==='gallery')renderGallery();},150);});
 
 // ---- gallery view: full-history masonry + search + tags + detail drawer ----
-let VIEW='session', GITEMS=[], GTAG='', GAUTHOR='', DRAWER_ID=null; let _gq;
+let VIEW='session', GITEMS=[], GTAGS=new Set(), GAUTHOR='', DRAWER_ID=null; let _gq;
 function setView(v){
   VIEW=v;
   document.querySelector('.wrap').style.display=(v==='session')?'flex':'none';
@@ -402,7 +402,7 @@ function setView(v){
 async function refreshGallery(){
   const p=new URLSearchParams({all:'1'});
   if($('gq').value.trim())p.set('q',$('gq').value.trim());
-  if(GTAG)p.set('tag',GTAG);
+  if(GTAGS.size)p.set('tag',[...GTAGS].join(','));
   if(GAUTHOR)p.set('author',GAUTHOR);
   GITEMS=await (await fetch('/api/session?'+p)).json();
   $('gcount').textContent=GITEMS.length+' IMAGES';
@@ -418,8 +418,10 @@ async function renderAuthorChips(){
 async function renderTagChips(){
   const vocab=await (await fetch('/api/tags')).json();
   $('gchips').innerHTML=vocab.map(([t,c])=>
-    `<span class="tagchip ${GTAG===t?'on':''}" data-t="${t}">${t} · ${c}</span>`).join('')||'<span class="mono" style="font-size:9px;color:var(--faint)">no tags yet — open an image and add some</span>';
-  $('gchips').querySelectorAll('.tagchip').forEach(ch=>ch.onclick=()=>{GTAG=(GTAG===ch.dataset.t)?'':ch.dataset.t;refreshGallery();});
+    `<span class="tagchip ${GTAGS.has(t)?'on':''}" data-t="${t}">${t} · ${c}</span>`).join('')||'<span class="mono" style="font-size:9px;color:var(--faint)">no tags yet — open an image and add some</span>';
+  $('gchips').querySelectorAll('.tagchip').forEach(ch=>ch.onclick=()=>{
+    GTAGS.has(ch.dataset.t)?GTAGS.delete(ch.dataset.t):GTAGS.add(ch.dataset.t);
+    refreshGallery();});
 }
 function renderGallery(){
   const gEl=$('ggrid');
