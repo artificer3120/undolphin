@@ -35,14 +35,25 @@ form — but three riders for the next pass:
    working the lab, read who holds it. The overlap = the operator's #cleanup/#nextpass
    snag of record.
 
-The operator's stated iterative model: good first run, then passes. Open as of 2026-07-21, from his word in the build transcript:
+The operator's stated iterative model: good first run, then passes. Original queue from 2026-07-21, updated 2026-07-24 with the bow pass:
 
-1. **Full Runware catalog** — tap Runware's model search from the app so the UI lists the live catalog (Nano Banana, Seedream, Ideogram, Kling, …) instead of four hand-picked entries. His ask, verbatim intent: "can we just tap a runware api and get a list of all of their available models?"
-2. **HF relic cleanup** — the UI cost line still says "HF credits"; run.ps1 and app.py headers still name HuggingFace as the provider. Small, but the docs lie until fixed.
-3. **Design-reference pass** — apply the collected reference corpus ([[design-with-the-code|design with the code]]) to the surface.
-4. **Gallery / Workbench views** — the fuller browsing surface Haldir proposed and never built.
-5. **LoRA horizon** — Runware exposes LoRA-training endpoints; the operator's own-LoRA vision waits on a settled catalog first.
+1. ~~**Full Runware catalog**~~ **CLOSED 2026-07-24** — the CATALOG search + AIR-direct generation ship the whole library ([[the-full-catalog]]).
+2. ~~**HF relic cleanup**~~ **CLOSED** — the "HF credits" cost line reads "Runware"; app.py/run.ps1 headers name Runware.
+3. **Design-reference pass** — apply the collected reference corpus ([[design-with-the-code|design with the code]]) to the surface. STILL OPEN.
+4. ~~**Gallery / Workbench views**~~ **CLOSED 2026-07-24** — the GALLERY tab with masonry, tags, search, curation ([[the-gallery-surface]]).
+5. **LoRA horizon** — Runware exposes LoRA-training endpoints; the operator's own-LoRA vision waits on a settled catalog first. STILL OPEN.
 
-Done and verified (for contrast): backend on Runware, vault-pulled key, four models live, real per-image cost, session gallery + saved configs, mockup in DESIGN. **2026-07-21: seed/reference images** — `/api/upload` (file → Runware UUID), `seedImage` on the inference task, per-model `img`/`imgMax` capability, and the drag-drop reference section from the App2 mockup + animation video (v2 design, both in DESIGN\). Verified end-to-end: gallery image uploaded → UUID → img2img render landed with the ref recorded.
+## Shipped 2026-07-24 (the tweak session + bow)
+- Delete-from-UI (soft, to OUTPUT/TRASH); true masonry gallery; GALLERY view + multi-tag
+  AND filter + search; hover action bar (reuse/download) + group select + META toggle;
+  **authorship/bylines** with author filter ([[authorship-and-bylines]]); full Runware
+  catalog + AIR-direct gen + live balance ([[the-full-catalog]]).
+- All at PARITY on the forge (`labs/undolphin`), verified by the parity tool per commit.
+
+## Still open
+- Design-reference pass (queue 3); LoRA horizon (queue 5); the phase-2 unMemory tie-in
+  (author filter → identity crosswalk cross-query).
+
+Done and verified (earlier): backend on Runware, vault-pulled key, four models live, real per-image cost, session gallery + saved configs, mockup in DESIGN. **2026-07-21: seed/reference images** — `/api/upload` → `seedImage`, per-model `img`/`imgMax`, drag-drop reference section, verified end-to-end.
 
 Related: [[the-runware-backend|The Runware backend]] · [[the-model-registry|The model registry]]
