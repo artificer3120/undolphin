@@ -234,6 +234,8 @@ def api_delete_image(iid):
 
 @app.route("/api/session")
 def api_session():
+    # default: last 60 (the session strip). all=1: full history for the gallery view,
+    # with optional q= (substring over prompt/tags/model) and tag= (exact) filters.
     path = os.path.join(STATE, "session.jsonl")
     if not os.path.isfile(path):
         return jsonify([])
@@ -244,7 +246,61 @@ def api_session():
                 rows.append(json.loads(line))
             except ValueError:
                 pass
+    if request.args.get("all"):
+        q = (request.args.get("q") or "").strip().lower()
+        tag = (request.args.get("tag") or "").strip().lower()
+        if tag:
+            rows = [r for r in rows if tag in [t.lower() for t in r.get("tags", [])]]
+        if q:
+            def hit(r):
+                hay = " ".join([r.get("prompt") or "", r.get("model_name") or "",
+                                " ".join(r.get("tags", []))]).lower()
+                return q in hay
+            rows = [r for r in rows if hit(r)]
+        return jsonify(rows[::-1])
     return jsonify(rows[-60:][::-1])
+
+
+@app.route("/api/image/<iid>/tags", methods=["PUT"])
+def api_set_tags(iid):
+    tags = request.get_json(force=True).get("tags") or []
+    tags = [str(t).strip() for t in tags if str(t).strip()][:24]
+    path = os.path.join(STATE, "session.jsonl")
+    if not os.path.isfile(path):
+        return jsonify({"error": "no session log"}), 404
+    out, found = [], False
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            try:
+                r = json.loads(line)
+            except ValueError:
+                continue
+            if r.get("id") == iid:
+                r["tags"] = tags
+                found = True
+            out.append(json.dumps(r))
+    if not found:
+        return jsonify({"error": "unknown image id"}), 404
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(out) + "\n")
+    return jsonify({"ok": True, "tags": tags})
+
+
+@app.route("/api/tags")
+def api_tags():
+    # the tag vocabulary with counts, for the gallery chip row
+    path = os.path.join(STATE, "session.jsonl")
+    counts = {}
+    if os.path.isfile(path):
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                try:
+                    r = json.loads(line)
+                except ValueError:
+                    continue
+                for t in r.get("tags", []):
+                    counts[t] = counts.get(t, 0) + 1
+    return jsonify(sorted(counts.items(), key=lambda x: -x[1]))
 
 
 @app.route("/api/configs", methods=["GET", "POST"])

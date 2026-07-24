@@ -66,6 +66,18 @@
   .drop .clr{position:absolute;top:4px;right:6px;z-index:2;color:#fff;background:rgba(0,0,0,.55);width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;}
   .drop .meta{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);font-family:'JetBrains Mono',monospace;font-size:8px;color:#cfd4da;padding:3px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .textonly{display:flex;align-items:center;gap:8px;border:1px dashed var(--line);background:var(--sub);padding:11px 12px;font-size:11px;color:var(--muted);line-height:1.45;}
+  .vtab{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;padding:7px 12px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;}
+  .vtab.on{color:var(--text);border-bottom-color:var(--accent);}
+  .gwrap{display:none;min-height:calc(100vh - 49px);}
+  .gmain{display:flex;align-items:stretch;}
+  .gcol{flex:1;min-width:0;padding:16px 18px;overflow-y:auto;max-height:calc(100vh - 49px);
+    background-image:radial-gradient(circle, var(--hair) 0.9px, transparent 0.9px);background-size:17px 17px;}
+  .drawer{width:300px;flex:none;background:var(--panel);border-left:1px solid var(--line);padding:16px;overflow-y:auto;max-height:calc(100vh - 49px);display:none;}
+  .gsearch{width:100%;border:1px solid var(--line);background:var(--sub);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:9px 11px;outline:none;}
+  .tagchip{display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9.5px;padding:4px 8px;border:1px solid var(--line);color:var(--text);cursor:pointer;margin:0 6px 6px 0;}
+  .tagchip.on{border-color:var(--accent);background:rgba(184,20,20,.2);color:var(--accentLite);}
+  .tagchip .x{color:var(--faint);}
+  .tagadd{border:1px solid var(--line);background:var(--sub);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:10px;padding:6px 8px;outline:none;width:110px;}
   .modal{position:fixed;inset:0;z-index:60;background:rgba(6,8,10,.66);display:flex;align-items:center;justify-content:center;padding:28px;}
   .card{max-width:820px;max-height:88vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);display:flex;}
   .card img{width:420px;flex:none;object-fit:contain;background:var(--sub);}
@@ -77,8 +89,12 @@
 </head>
 <body>
 <div class="bar">
-  <div class="logo">UP</div>
+  <div class="logo">UD</div>
   <div class="brand">un<span>Dolphin</span></div>
+  <div style="display:flex;gap:2px;margin-left:22px">
+    <div class="vtab on" id="tabSession" onclick="setView('session')">SESSION</div>
+    <div class="vtab" id="tabGallery" onclick="setView('gallery')">GALLERY</div>
+  </div>
   <div style="flex:1"></div>
   <div class="mono" style="font-size:11.5px" id="topcost">$0.00</div>
 </div>
@@ -136,6 +152,20 @@
       <span class="mono" style="font-size:9px;letter-spacing:.1em;color:var(--muted)" id="status"></span>
     </div>
     <div class="grid" id="grid"></div>
+  </div>
+</div>
+
+<div class="gwrap" id="galleryView">
+  <div class="gmain">
+    <div class="gcol">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+        <input class="gsearch" id="gq" placeholder="Search prompts, tags, models…" style="max-width:420px">
+        <span class="mono" style="font-size:9px;letter-spacing:.1em;color:var(--muted)" id="gcount"></span>
+      </div>
+      <div id="gchips" style="margin-bottom:10px"></div>
+      <div class="grid" id="ggrid"></div>
+    </div>
+    <div class="drawer" id="drawer"></div>
   </div>
 </div>
 
@@ -277,7 +307,98 @@ function renderGrid(){
   $('grid').innerHTML=cols.map(c=>`<div class="col">${c.html}</div>`).join('');
   $('grid').querySelectorAll('.tile[data-i]').forEach(t=>t.onclick=()=>openDetail(+t.dataset.i));
 }
-let _rsz; window.addEventListener('resize',()=>{clearTimeout(_rsz);_rsz=setTimeout(renderGrid,150);});
+let _rsz; window.addEventListener('resize',()=>{clearTimeout(_rsz);_rsz=setTimeout(()=>{renderGrid();if(VIEW==='gallery')renderGallery();},150);});
+
+// ---- gallery view: full-history masonry + search + tags + detail drawer ----
+let VIEW='session', GITEMS=[], GTAG='', DRAWER_ID=null; let _gq;
+function setView(v){
+  VIEW=v;
+  document.querySelector('.wrap').style.display=(v==='session')?'flex':'none';
+  $('galleryView').style.display=(v==='gallery')?'block':'none';
+  $('tabSession').classList.toggle('on',v==='session');
+  $('tabGallery').classList.toggle('on',v==='gallery');
+  if(v==='gallery')refreshGallery();
+}
+async function refreshGallery(){
+  const p=new URLSearchParams({all:'1'});
+  if($('gq').value.trim())p.set('q',$('gq').value.trim());
+  if(GTAG)p.set('tag',GTAG);
+  GITEMS=await (await fetch('/api/session?'+p)).json();
+  $('gcount').textContent=GITEMS.length+' IMAGES';
+  renderTagChips(); renderGallery();
+  if(DRAWER_ID)openDrawerById(DRAWER_ID);
+}
+async function renderTagChips(){
+  const vocab=await (await fetch('/api/tags')).json();
+  $('gchips').innerHTML=vocab.map(([t,c])=>
+    `<span class="tagchip ${GTAG===t?'on':''}" data-t="${t}">${t} · ${c}</span>`).join('')||'<span class="mono" style="font-size:9px;color:var(--faint)">no tags yet — open an image and add some</span>';
+  $('gchips').querySelectorAll('.tagchip').forEach(ch=>ch.onclick=()=>{GTAG=(GTAG===ch.dataset.t)?'':ch.dataset.t;refreshGallery();});
+}
+function renderGallery(){
+  const gEl=$('ggrid');
+  const w=gEl.clientWidth||window.innerWidth; const n=w>1250?4:(w>850?3:2);
+  const cols=Array.from({length:n},()=>({html:'',h:0}));
+  GITEMS.forEach((r,i)=>{
+    const ratio=(r.h&&r.w)?(r.h/r.w):((r.height&&r.width)?(r.height/r.width):1);
+    let best=0; for(let c=1;c<n;c++) if(cols[c].h<cols[best].h) best=c;
+    cols[best].html+=`<div class="cell"><div class="tile" data-g="${i}" style="${r.id===DRAWER_ID?'outline:2px solid var(--accent);outline-offset:-2px;':''}"><img src="${r.url}" loading="lazy"></div></div>`;
+    cols[best].h+=ratio;
+  });
+  gEl.innerHTML=cols.map(c=>`<div class="col">${c.html}</div>`).join('');
+  gEl.querySelectorAll('.tile[data-g]').forEach(t=>t.onclick=()=>{openDrawer(+t.dataset.g);});
+}
+function tagsEditorHtml(r,scope){
+  const tags=(r.tags||[]);
+  return `<div class="lbl" style="margin:12px 0 6px">Tags</div>
+    <div id="${scope}tags">${tags.map(t=>`<span class="tagchip" data-rm="${t}">${t} <span class="x">×</span></span>`).join('')}
+    <input class="tagadd" id="${scope}tagin" placeholder="+ tag"></div>`;
+}
+function wireTagsEditor(r,scope,after){
+  const box=$(scope+'tags'); if(!box)return;
+  box.querySelectorAll('[data-rm]').forEach(ch=>ch.onclick=async()=>{
+    const t=(r.tags||[]).filter(x=>x!==ch.dataset.rm); await saveTags(r,t); after();});
+  const inp=$(scope+'tagin');
+  inp.onkeydown=async e=>{
+    if(e.key==='Enter'&&inp.value.trim()){
+      const t=[...new Set([...(r.tags||[]),inp.value.trim()])]; await saveTags(r,t); after();}
+  };
+}
+async function saveTags(r,tags){
+  const resp=await fetch('/api/image/'+encodeURIComponent(r.id)+'/tags',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({tags})});
+  if(resp.ok){r.tags=tags;
+    const s=RESULTS.find(x=>x.id===r.id); if(s)s.tags=tags;
+    const g=GITEMS.find(x=>x.id===r.id); if(g)g.tags=tags;}
+}
+function openDrawer(i){openDrawerById(GITEMS[i]&&GITEMS[i].id);}
+function openDrawerById(id){
+  const r=GITEMS.find(x=>x.id===id); const d=$('drawer');
+  if(!r){d.style.display='none';DRAWER_ID=null;renderGallery();return;}
+  DRAWER_ID=id;
+  const rows=[['SEED',r.seed],['STEPS',r.steps],['SIZE',(r.width||r.w)+'×'+(r.height||r.h)],['MODEL',r.model_name],['COST',r.cost>0?'$'+r.cost:'free']];
+  if(r.ref)rows.push(['SEED IMG',String(r.ref).slice(0,32)+'…']);
+  d.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span class="mono" style="font-size:9px;letter-spacing:.12em;color:var(--muted)">IMAGE DETAIL</span>
+      <span class="x" style="cursor:pointer;font-size:16px" onclick="openDrawerById(null)">×</span></div>
+    <img src="${r.url}" style="width:100%;border:1px solid var(--line)">
+    <div style="font-weight:700;font-size:13px;margin-top:10px">${r.model_name||''}</div>
+    <div style="font-size:11px;line-height:1.5;color:var(--muted);margin-top:6px">${r.prompt||''}</div>
+    ${tagsEditorHtml(r,'d')}
+    <div style="margin-top:10px">${rows.map(x=>`<div class="drow"><span>${x[0]}</span><span class="mono">${x[1]}</span></div>`).join('')}</div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <a class="btn gen" style="flex:1;text-decoration:none;line-height:1.9;text-align:center" href="${r.url}" download>Download</a>
+    </div>
+    <button class="btn ghost" id="gdelbtn" style="width:100%;margin-top:8px;color:var(--accentLite)">Delete</button>`;
+  d.style.display='block';
+  wireTagsEditor(r,'d',()=>openDrawerById(id));
+  const b=$('gdelbtn');
+  b.onclick=async()=>{
+    if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='Confirm delete?';b.style.borderColor='var(--accent)';setTimeout(()=>{if(b.dataset.armed==='1'){b.dataset.armed='';b.textContent='Delete';b.style.borderColor='var(--line)';}},4000);return;}
+    const resp=await fetch('/api/image/'+encodeURIComponent(r.id),{method:'DELETE'});
+    if(resp.ok){DRAWER_ID=null;$('drawer').style.display='none';RESULTS=RESULTS.filter(x=>x.id!==r.id);renderGrid();refreshGallery();}
+  };
+  renderGallery();
+}
+(function(){const g=$('gq'); if(g)g.oninput=()=>{clearTimeout(_gq);_gq=setTimeout(refreshGallery,300);};})();
 function openDetail(i){
   const r=RESULTS[i]; if(!r||r.loading)return;
   const rows=[['SEED',r.seed],['STEPS',r.steps],['SIZE',r.width+'×'+r.height],['MODEL',r.model_name],['PROVIDER',r.provider],['COST',r.cost>0?'$'+r.cost:'free']];
@@ -292,6 +413,7 @@ function openDetail(i){
       <div class="lbl" style="margin:14px 0 4px">Prompt</div>
       <div style="font-size:12px;line-height:1.55">${r.prompt||''}</div>
       ${r.negative?'<div class="lbl" style="margin:12px 0 4px">Negative</div><div style="font-size:12px;color:var(--muted)">'+r.negative+'</div>':''}
+      ${tagsEditorHtml(r,'m')}
       <div style="margin-top:12px">${rows.map(x=>`<div class="drow"><span>${x[0]}</span><span class="mono">${x[1]}</span></div>`).join('')}</div>
       <div style="display:flex;gap:8px;margin-top:14px">
         <button class="btn ghost" style="flex:1" onclick="reuse(${i})">Reuse settings</button>
@@ -300,6 +422,7 @@ function openDetail(i){
       <button class="btn ghost" id="delbtn" style="width:100%;margin-top:8px;color:var(--accentLite);border-color:var(--line)" onclick="armDelete(${i})">Delete</button>
     </div></div></div>`;
   $('mm').onclick=()=>$('modalRoot').innerHTML='';
+  wireTagsEditor(r,'m',()=>openDetail(i));
 }
 function reuse(i){const r=RESULTS[i];$('prompt').value=r.prompt||'';const sel=$('model');if(MODELS.find(m=>m.id===r.model)){sel.value=r.model;pickModel(r.model);}$('modalRoot').innerHTML='';}
 function armDelete(i){
