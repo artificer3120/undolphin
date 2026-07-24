@@ -68,6 +68,19 @@
   .textonly{display:flex;align-items:center;gap:8px;border:1px dashed var(--line);background:var(--sub);padding:11px 12px;font-size:11px;color:var(--muted);line-height:1.45;}
   .vtab{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;padding:7px 12px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;}
   .vtab.on{color:var(--text);border-bottom-color:var(--accent);}
+  .tile:hover img{filter:brightness(1.08);}
+  .tile:hover{border-color:var(--silver,#AEB4BC);}
+  .tile .acts{position:absolute;top:6px;right:6px;display:flex;gap:4px;opacity:0;transition:opacity .12s;z-index:3;}
+  .tile:hover .acts{opacity:1;}
+  .tile .abtn{width:26px;height:26px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.72);color:var(--text);font-size:13px;cursor:pointer;border:1px solid var(--line);}
+  .tile .abtn:hover{border-color:var(--accentLite);color:var(--accentLite);}
+  .tile .selbox{position:absolute;top:6px;left:6px;width:18px;height:18px;border:1.5px solid rgba(255,255,255,.75);background:rgba(0,0,0,.5);cursor:pointer;opacity:0;transition:opacity .12s;z-index:3;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;}
+  .tile:hover .selbox,.tile.selected .selbox{opacity:1;}
+  .tile.selected{outline:2px solid var(--accent);outline-offset:-2px;}
+  .tile.selected .selbox{background:var(--accent);border-color:var(--accent);}
+  .meta{background:var(--pop);border:1px solid var(--line);border-top:none;padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;white-space:nowrap;overflow:hidden;}
+  .selbar{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:70;background:var(--panel);border:1px solid var(--accent);display:none;align-items:center;gap:14px;padding:9px 16px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.08em;}
+  .selbar span{cursor:pointer;} .selbar span:hover{color:var(--accentLite);}
   .gwrap{display:none;min-height:calc(100vh - 49px);}
   .gmain{display:flex;align-items:stretch;}
   .gcol{flex:1;min-width:0;padding:16px 18px;overflow-y:auto;max-height:calc(100vh - 49px);
@@ -95,6 +108,7 @@
     <div class="vtab on" id="tabSession" onclick="setView('session')">SESSION</div>
     <div class="vtab" id="tabGallery" onclick="setView('gallery')">GALLERY</div>
   </div>
+  <div class="vtab" id="metaToggle" style="margin-left:8px" onclick="toggleMeta()">META</div>
   <div style="flex:1"></div>
   <div class="mono" style="font-size:11.5px" id="topcost">$0.00</div>
 </div>
@@ -167,6 +181,13 @@
     </div>
     <div class="drawer" id="drawer"></div>
   </div>
+</div>
+
+<div class="selbar" id="selbar">
+  <b id="selcount"></b>
+  <span onclick="selDownload()">DOWNLOAD</span>
+  <span id="seldel" onclick="selDelete()">DELETE</span>
+  <span onclick="selClear()">CLEAR</span>
 </div>
 
 <div id="modalRoot"></div>
@@ -289,6 +310,64 @@ function colCount(){
   const w=$('grid').clientWidth||window.innerWidth;
   return w>1250?4:(w>850?3:2);
 }
+let SELECTED=new Set(), META=localStorage.getItem('ud_meta')==='1';
+function toggleMeta(){
+  META=!META; localStorage.setItem('ud_meta',META?'1':'0');
+  $('metaToggle').classList.toggle('on',META);
+  renderGrid(); if(VIEW==='gallery')renderGallery();
+}
+function tileHtml(r,kind,i){
+  const sel=SELECTED.has(r.id)?' selected':'';
+  const meta=META?`<div class="meta"><span>${r.model_name||''}</span><span>${(r.width||r.w||'?')}×${(r.height||r.h||'?')} · ${r.cost>0?'$'+r.cost:'free'}</span></div>`:'';
+  return `<div class="cell"><div class="tile${sel}" data-${kind}="${i}">
+    <div class="selbox" data-selid="${r.id}">${SELECTED.has(r.id)?'✓':''}</div>
+    <div class="acts">
+      <div class="abtn" title="Reuse as prompt" data-reuse="${i}">⟲</div>
+      <div class="abtn" title="Download" data-dl="${r.url}">⇩</div>
+    </div>
+    <img src="${r.url}" loading="lazy"></div>${meta}</div>`;
+}
+function wireTiles(el,items,openFn){
+  el.querySelectorAll('.selbox').forEach(b=>b.onclick=e=>{
+    e.stopPropagation(); const id=b.dataset.selid;
+    SELECTED.has(id)?SELECTED.delete(id):SELECTED.add(id);
+    updateSelbar(); renderGrid(); if(VIEW==='gallery')renderGallery();
+  });
+  el.querySelectorAll('[data-reuse]').forEach(b=>b.onclick=e=>{
+    e.stopPropagation(); reuseRec(items[+b.dataset.reuse]);
+  });
+  el.querySelectorAll('[data-dl]').forEach(b=>b.onclick=e=>{
+    e.stopPropagation(); const a=document.createElement('a');a.href=b.dataset.dl;a.download='';document.body.appendChild(a);a.click();a.remove();
+  });
+  el.querySelectorAll('.tile[data-i],.tile[data-g]').forEach(t=>t.onclick=()=>openFn(+(t.dataset.i??t.dataset.g)));
+}
+function reuseRec(r){
+  if(!r)return;
+  $('prompt').value=r.prompt||'';
+  if(MODELS.find(m=>m.id===r.model)){$('model').value=r.model;pickModel(r.model);}
+  $('modalRoot').innerHTML=''; setView('session');
+}
+function updateSelbar(){
+  $('selbar').style.display=SELECTED.size?'flex':'none';
+  $('selcount').textContent=SELECTED.size+' SELECTED';
+  const d=$('seldel'); if(d){d.dataset.armed='';d.textContent='DELETE';}
+}
+function selRecs(){
+  const seen=new Set(), out=[];
+  [...RESULTS,...GITEMS].forEach(r=>{if(r.id&&SELECTED.has(r.id)&&!seen.has(r.id)){seen.add(r.id);out.push(r);}});
+  return out;
+}
+function selDownload(){
+  selRecs().forEach((r,k)=>setTimeout(()=>{const a=document.createElement('a');a.href=r.url;a.download='';document.body.appendChild(a);a.click();a.remove();},k*250));
+}
+async function selDelete(){
+  const d=$('seldel');
+  if(d.dataset.armed!=='1'){d.dataset.armed='1';d.textContent='CONFIRM DELETE '+SELECTED.size+'?';setTimeout(()=>{if(d.dataset.armed==='1'){d.dataset.armed='';d.textContent='DELETE';}},4000);return;}
+  for(const r of selRecs()){await fetch('/api/image/'+encodeURIComponent(r.id),{method:'DELETE'});}
+  RESULTS=RESULTS.filter(x=>!SELECTED.has(x.id)); SELECTED.clear(); updateSelbar();
+  renderGrid(); if(VIEW==='gallery')refreshGallery();
+}
+function selClear(){SELECTED.clear();updateSelbar();renderGrid();if(VIEW==='gallery')renderGallery();}
 function renderGrid(){
   // true masonry: newest packs left-to-right into the currently-shortest column,
   // heights predicted from each record's known render ratio (no DOM measuring).
@@ -300,12 +379,12 @@ function renderGrid(){
     if(r.loading){
       cols[best].html+=`<div class="cell"><div class="tile ph" style="padding-bottom:${100*ratio}%"><div class="spin"><div></div></div></div></div>`;
     } else {
-      cols[best].html+=`<div class="cell"><div class="tile" data-i="${i}"><img src="${r.url}" loading="lazy"></div></div>`;
+      cols[best].html+=tileHtml(r,'i',i);
     }
     cols[best].h+=ratio;
   });
   $('grid').innerHTML=cols.map(c=>`<div class="col">${c.html}</div>`).join('');
-  $('grid').querySelectorAll('.tile[data-i]').forEach(t=>t.onclick=()=>openDetail(+t.dataset.i));
+  wireTiles($('grid'),RESULTS,openDetail);
 }
 let _rsz; window.addEventListener('resize',()=>{clearTimeout(_rsz);_rsz=setTimeout(()=>{renderGrid();if(VIEW==='gallery')renderGallery();},150);});
 
@@ -341,11 +420,13 @@ function renderGallery(){
   GITEMS.forEach((r,i)=>{
     const ratio=(r.h&&r.w)?(r.h/r.w):((r.height&&r.width)?(r.height/r.width):1);
     let best=0; for(let c=1;c<n;c++) if(cols[c].h<cols[best].h) best=c;
-    cols[best].html+=`<div class="cell"><div class="tile" data-g="${i}" style="${r.id===DRAWER_ID?'outline:2px solid var(--accent);outline-offset:-2px;':''}"><img src="${r.url}" loading="lazy"></div></div>`;
+    let cell=tileHtml(r,'g',i);
+    if(r.id===DRAWER_ID)cell=cell.replace('class="tile','style="outline:2px solid var(--accent);outline-offset:-2px" class="tile');
+    cols[best].html+=cell;
     cols[best].h+=ratio;
   });
   gEl.innerHTML=cols.map(c=>`<div class="col">${c.html}</div>`).join('');
-  gEl.querySelectorAll('.tile[data-g]').forEach(t=>t.onclick=()=>{openDrawer(+t.dataset.g);});
+  wireTiles(gEl,GITEMS,openDrawer);
 }
 function tagsEditorHtml(r,scope){
   const tags=(r.tags||[]);
@@ -398,7 +479,8 @@ function openDrawerById(id){
   };
   renderGallery();
 }
-(function(){const g=$('gq'); if(g)g.oninput=()=>{clearTimeout(_gq);_gq=setTimeout(refreshGallery,300);};})();
+(function(){const g=$('gq'); if(g)g.oninput=()=>{clearTimeout(_gq);_gq=setTimeout(refreshGallery,300);};
+  $('metaToggle').classList.toggle('on',META);})();
 function openDetail(i){
   const r=RESULTS[i]; if(!r||r.loading)return;
   const rows=[['SEED',r.seed],['STEPS',r.steps],['SIZE',r.width+'×'+r.height],['MODEL',r.model_name],['PROVIDER',r.provider],['COST',r.cost>0?'$'+r.cost:'free']];
