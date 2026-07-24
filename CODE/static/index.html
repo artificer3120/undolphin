@@ -277,10 +277,27 @@ function openDetail(i){
         <button class="btn ghost" style="flex:1" onclick="reuse(${i})">Reuse settings</button>
         <a class="btn gen" style="flex:1;text-decoration:none;line-height:1.9" href="${r.url}" download>Download</a>
       </div>
+      <button class="btn ghost" id="delbtn" style="width:100%;margin-top:8px;color:var(--accentLite);border-color:var(--line)" onclick="armDelete(${i})">Delete</button>
     </div></div></div>`;
   $('mm').onclick=()=>$('modalRoot').innerHTML='';
 }
 function reuse(i){const r=RESULTS[i];$('prompt').value=r.prompt||'';const sel=$('model');if(MODELS.find(m=>m.id===r.model)){sel.value=r.model;pickModel(r.model);}$('modalRoot').innerHTML='';}
+function armDelete(i){
+  const b=$('delbtn'); if(!b)return;
+  if(b.dataset.armed!=='1'){ b.dataset.armed='1'; b.textContent='Confirm delete?'; b.style.borderColor='var(--accent)'; b.style.background='rgba(184,20,20,.15)';
+    setTimeout(()=>{const x=$('delbtn'); if(x&&x.dataset.armed==='1'){x.dataset.armed='';x.textContent='Delete';x.style.borderColor='var(--line)';x.style.background='';}},4000);
+    return; }
+  doDelete(i);
+}
+async function doDelete(i){
+  const r=RESULTS[i]; if(!r)return;
+  const b=$('delbtn'); if(b){b.disabled=true;b.textContent='Deleting…';}
+  try{
+    const resp=await fetch('/api/image/'+encodeURIComponent(r.id),{method:'DELETE'});
+    if(resp.ok){ RESULTS.splice(i,1); $('modalRoot').innerHTML=''; renderGrid(); }
+    else{ const j=await resp.json(); if(b){b.disabled=false;b.textContent='Delete failed: '+(j.error||resp.status);} }
+  }catch(e){ if(b){b.disabled=false;b.textContent='Delete failed';} }
+}
 async function saveConfig(){
   const cfg={id:'cfg'+Date.now(),title:($('prompt').value||'Untitled').split(/[,.]/)[0].slice(0,30).trim()||'Untitled',
     model:MODEL.id,model_name:MODEL.name,size:SIZE,steps:+$('steps').value,num:+$('num').value,

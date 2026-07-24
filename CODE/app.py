@@ -201,6 +201,37 @@ def api_upload():
     return jsonify({"uuid": u})
 
 
+@app.route("/api/image/<iid>", methods=["DELETE"])
+def api_delete_image(iid):
+    # soft delete: the PNG moves to OUTPUT/TRASH (product never gets destroyed outright),
+    # the session row drops so the UI forgets it. Two-stage confirm lives client-side.
+    path = os.path.join(STATE, "session.jsonl")
+    if not os.path.isfile(path):
+        return jsonify({"error": "no session log"}), 404
+    kept, victim = [], None
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            try:
+                r = json.loads(line)
+            except ValueError:
+                continue
+            if r.get("id") == iid:
+                victim = r
+            else:
+                kept.append(line.rstrip("\n"))
+    if victim is None:
+        return jsonify({"error": "unknown image id"}), 404
+    fname = victim["url"].split("/")[-1]
+    src = os.path.join(GALLERY, fname)
+    trash = os.path.join(GALLERY, "TRASH")
+    os.makedirs(trash, exist_ok=True)
+    if os.path.isfile(src):
+        os.replace(src, os.path.join(trash, fname))
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(kept) + ("\n" if kept else ""))
+    return jsonify({"ok": True, "trashed": fname})
+
+
 @app.route("/api/session")
 def api_session():
     path = os.path.join(STATE, "session.jsonl")
