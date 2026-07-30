@@ -19,6 +19,7 @@ import io
 import json
 import os
 import re
+import sys
 import time
 import uuid
 
@@ -28,6 +29,17 @@ from flask import Flask, request, jsonify, send_from_directory, send_file
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATIC = os.path.join(HERE, "static")
 STATE = os.path.join(HERE, "state")
+
+# Headless launch (pythonw, as switchboard uses) attaches no console, so sys.stdout/stderr are
+# None. The startup print() in __main__ would then raise and kill the process before app.run()
+# binds 8790 -- the "try N" flap switchboard kept hitting. Redirect a None stream to a log so a
+# windowless launch runs cleanly AND future crashes leave a trace instead of vanishing.
+if sys.stdout is None or sys.stderr is None:
+    _logf = open(os.path.join(HERE, "undolphin.pythonw.log"), "a", encoding="utf-8")
+    if sys.stdout is None:
+        sys.stdout = _logf
+    if sys.stderr is None:
+        sys.stderr = _logf
 
 
 def _output_dir():
