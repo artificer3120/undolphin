@@ -211,6 +211,7 @@ async function boot(){
   CONFIGS=await (await fetch('/api/configs')).json(); renderConfigs();
   RESULTS=await (await fetch('/api/session')).json(); renderGrid();
   wire(); wireCatalog(); refreshBalance();
+  startPolling();
 }
 function pickModel(id){
   MODEL=MODELS.find(m=>m.id===id)||MODELS[0];
@@ -426,6 +427,24 @@ function renderGrid(){
   wireTiles($('grid'),RESULTS,openDetail);
 }
 let _rsz; window.addEventListener('resize',()=>{clearTimeout(_rsz);_rsz=setTimeout(()=>{renderGrid();if(VIEW==='gallery')renderGallery();},150);});
+
+// ---- live auto-update: poll for images added by ANY submission (this tab, another
+// tab, or an agent hitting /api/generate) so a new render surfaces without a reload.
+let _pollTimer=null;
+async function pollSession(){
+  if($('gen').disabled||document.hidden) return;   // skip mid-render, or when the tab is hidden
+  try{
+    const latest=await (await fetch('/api/session')).json();
+    const cur=RESULTS.filter(x=>!x.loading).map(x=>x.id).join('|');
+    const nxt=latest.map(x=>x.id).join('|');
+    if(cur!==nxt){                                   // the session set changed (added or removed)
+      RESULTS=RESULTS.filter(x=>x.loading).concat(latest);
+      renderGrid();
+      if(VIEW==='gallery'&&!$('gq').value.trim()&&!GTAGS.size&&!GAUTHOR&&!DRAWER_ID) refreshGallery();
+    }
+  }catch(e){}
+}
+function startPolling(){ if(!_pollTimer) _pollTimer=setInterval(pollSession,4000); }
 
 // ---- gallery view: full-history masonry + search + tags + detail drawer ----
 let VIEW='session', GITEMS=[], GTAGS=new Set(), GAUTHOR='', DRAWER_ID=null; let _gq;
