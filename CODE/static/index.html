@@ -98,6 +98,14 @@
   .drow{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--hair);font-size:11px;}
   .drow span:first-child{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.06em;color:var(--muted);}
   .hd{font-size:12.5px;} .hd b{}
+
+  .metaswitch{display:flex;align-items:center;gap:8px;margin-left:10px;cursor:pointer;user-select:none;}
+  .metaswitch .sw{width:34px;height:18px;border-radius:9px;background:#2a3038;border:1px solid var(--line);position:relative;transition:background .15s,border-color .15s;flex:none;}
+  .metaswitch .knob{position:absolute;top:1px;left:1px;width:14px;height:14px;border-radius:50%;background:var(--faint);transition:transform .15s,background .15s;}
+  .metaswitch.on .sw{background:rgba(184,20,20,.35);border-color:var(--accent);}
+  .metaswitch.on .knob{transform:translateX(16px);background:var(--accentLite);}
+  .metaswitch .swlbl{font-size:10px;letter-spacing:.14em;color:var(--muted);}
+  .metaswitch.on .swlbl{color:var(--text);}
 </style>
 </head>
 <body>
@@ -108,7 +116,7 @@
     <div class="vtab on" id="tabSession" onclick="setView('session')">SESSION</div>
     <div class="vtab" id="tabGallery" onclick="setView('gallery')">GALLERY</div>
   </div>
-  <div class="vtab" id="metaToggle" style="margin-left:8px" onclick="toggleMeta()">META</div>
+  <div class="metaswitch" id="metaToggle" onclick="toggleMeta()"><span class="sw"><span class="knob"></span></span><span class="swlbl mono">META</span></div>
   <div style="flex:1"></div>
   <div class="mono" style="font-size:10px;color:var(--muted);margin-right:14px" id="balance"></div>
   <div class="mono" style="font-size:11.5px" id="topcost">$0.00</div>
