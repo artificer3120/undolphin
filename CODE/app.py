@@ -100,7 +100,24 @@ def _runware_call(task):
     return None, str(body.get("errors") or body)[:300]
 
 
-def runware_generate(air, prompt, negative, width, height, steps, seed, ref=None):
+def _clean_loras(loras):
+    # [{"air": "civitai:MODEL@VERSION", "weight": 0.8}, ...] -> Runware's [{"model","weight"}].
+    # weight clamps to the API's own -4.0..4.0; a row with no air drops out silently.
+    out = []
+    for l in (loras or [])[:8]:
+        air = (l.get("air") or l.get("model") or "").strip()
+        if not air:
+            continue
+        try:
+            w = float(l.get("weight", 1.0))
+        except (TypeError, ValueError):
+            w = 1.0
+        out.append({"model": air, "weight": max(-4.0, min(4.0, w))})
+    return out
+
+
+def runware_generate(air, prompt, negative, width, height, steps, seed, ref=None,
+                     loras=None, cfg=None):
     task = {
         "taskType": "imageInference", "taskUUID": str(uuid.uuid4()),
         "positivePrompt": prompt, "model": air,
@@ -115,15 +132,24 @@ def runware_generate(air, prompt, negative, width, height, steps, seed, ref=None
         task["negativePrompt"] = negative
     if seed is not None:
         task["seed"] = int(seed)
+    lora = _clean_loras(loras)
+    if lora:
+        task["lora"] = lora
+    if cfg is not None:
+        task["CFGScale"] = float(cfg)
     res, err = _runware_call(task)
     if err:
-        # retry stripped -- some models reject steps/negative/seed. The seed image survives
-        # the strip: a required-image model fails without it, and an optional one keeps intent.
+        # retry stripped -- some models reject steps/negative/seed/CFGScale. The seed image and
+        # the LoRAs survive the strip: both carry INTENT the render is pointless without. A
+        # required-image model fails without the image; an anime render without its LoRA comes
+        # back as a different picture, which reads worse than an honest error.
         base = {"taskType": "imageInference", "taskUUID": str(uuid.uuid4()),
                 "positivePrompt": prompt, "model": air, "width": int(width),
                 "height": int(height), "numberResults": 1, "outputType": "URL"}
         if ref:
             base["seedImage"] = ref
+        if lora:
+            base["lora"] = lora
         res, err = _runware_call(base)
         if err:
             return None, None, None, err
@@ -160,6 +186,10 @@ def api_generate():
     width = d.get("width") or 1024
     height = d.get("height") or 1024
     steps = d.get("steps") or model.get("default_steps")
+    cfg = d.get("cfg")
+    if cfg is None:
+        cfg = model.get("default_cfg")
+    loras = d.get("loras") or []
     n = min(int(d.get("n") or 1), 8)
     refs = d.get("refs") or []
     ref = refs[0] if refs else None
@@ -173,7 +203,8 @@ def api_generate():
         seed = d.get("seed")
         if seed is not None:
             seed = int(seed) + i
-        img, rseed, rcost, err = runware_generate(model["air"], prompt, negative, width, height, steps, seed, ref)
+        img, rseed, rcost, err = runware_generate(model["air"], prompt, negative, width, height,
+                                                  steps, seed, ref, loras, cfg)
         if err:
             errors.append(err)
             continue
@@ -185,6 +216,7 @@ def api_generate():
         rec = {"id": iid, "url": "/gallery/" + fname, "model": model["id"],
                "model_name": model["name"], "provider": model["provider"],
                "seed": rseed, "width": width, "height": height, "steps": steps,
+               "cfg": cfg, "loras": _clean_loras(loras),
                "prompt": prompt, "negative": negative,
                "ref": (ref if isinstance(ref, str) and not ref.startswith("data:") else ("data-uri" if ref else None)),
                "author": author,
@@ -328,16 +360,28 @@ def api_catalog():
         return jsonify([])
     task = {"taskType": "modelSearch", "taskUUID": str(uuid.uuid4()),
             "search": q, "limit": 20}
+    # category splits the catalog into base checkpoints vs LoRAs. Runware's anime depth sits
+    # almost entirely in LoRAs, so searching them separately is the difference between finding
+    # a style and drowning in character adapters.
+    cat = (request.args.get("category") or "").strip()
+    if cat:
+        task["category"] = cat
     res, err = _runware_call(task)
     if err:
         return jsonify({"error": err}), 502
     out = []
     for m in res.get("results", []):
         caps = m.get("capabilities") or []
+        # architecture is load-bearing for LoRAs: a pony LoRA on an illustrious base degrades
+        # both, so the UI has to show what each one trained against.
         out.append({"name": m.get("name"), "air": m.get("air"),
-                    "category": m.get("category"), "comment": (m.get("comment") or "")[:140],
+                    "category": m.get("category"), "architecture": m.get("architecture"),
+                    "comment": (m.get("comment") or "")[:140],
                     "img": "optional" if "io:image-to-image" in caps else "none"})
     return jsonify(out)
+
+
+@app.route("/api/authors")
 def api_authors():
     path = os.path.join(STATE, "session.jsonl")
     counts = {}

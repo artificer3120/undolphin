@@ -80,5 +80,71 @@
     "note": "SDXL checkpoint. Lighter, stylized.",
     "img": "optional",
     "imgMax": 1
+  },
+  {
+    "id": "wai-illustrious",
+    "name": "WAI Illustrious SDXL",
+    "provider": "Civitai / Runware",
+    "air": "civitai:827184@1761560",
+    "tag": "ANIME",
+    "free": false,
+    "price": 0.0013,
+    "default_steps": 28,
+    "step_max": 50,
+    "default_cfg": 6,
+    "arch": "illustrious",
+    "sizes": [
+      "9:16",
+      "1:1",
+      "16:9",
+      "2:3"
+    ],
+    "note": "Anime, strongest all-round male + general. Booru tags; lead with 'masterpiece, best quality, amazing quality' and '1boy, solo, male focus'. Takes illustrious LoRAs.",
+    "img": "optional",
+    "imgMax": 1
+  },
+  {
+    "id": "noobai-xl",
+    "name": "NoobAI-XL (NAI-XL)",
+    "provider": "Civitai / Runware",
+    "air": "civitai:833294@1093948",
+    "tag": "ANIME",
+    "free": false,
+    "price": 0.0013,
+    "default_steps": 28,
+    "step_max": 50,
+    "default_cfg": 6,
+    "arch": "noobai",
+    "sizes": [
+      "9:16",
+      "1:1",
+      "16:9",
+      "2:3"
+    ],
+    "note": "Anime, darker and more painterly than WAI. Booru tags, same quality prefix. Takes noobai / illustrious LoRAs.",
+    "img": "optional",
+    "imgMax": 1
+  },
+  {
+    "id": "pony-v6",
+    "name": "Pony Diffusion V6 XL",
+    "provider": "Civitai / Runware",
+    "air": "civitai:257749@298112",
+    "tag": "ANIME",
+    "free": false,
+    "price": 0.0013,
+    "default_steps": 28,
+    "step_max": 50,
+    "default_cfg": 7,
+    "arch": "pony",
+    "sizes": [
+      "9:16",
+      "1:1",
+      "16:9",
+      "2:3"
+    ],
+    "note": "Anime, cleaner cel look. REQUIRES the score prefix: 'score_9, score_8_up, score_7_up, source_anime'. Takes pony LoRAs ONLY.",
+    "img": "optional",
+    "imgMax": 1
   }
 ]
