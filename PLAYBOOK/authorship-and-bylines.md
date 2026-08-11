@@ -23,8 +23,15 @@ content store; authorship gives it bylines, so "who made what" resolves at a gla
 later, joins unMemory — "everything Dylan rendered the week of the paintblind" becomes
 one cross-system query once the identity crosswalk lands.
 
-The rule this puts on agents: direct-to-provider renders (bypassing `/api/generate`)
-break the byline AND the gallery record — Dylan's original strays proved it. Render
-through the API, or the work goes unsigned and invisible.
+What this puts on agents: a render made outside `/api/generate` carries no byline and
+never enters the gallery record — Dylan's original strays showed it. The API route buys
+authorship and findability; a render made anywhere else trades both away. An agent that
+renders outside the API names what it gave up and moves on.
+
+*Scar, 2026-08-02:* this paragraph formerly closed **"Render through the API, or the work
+goes unsigned and invisible,"** and downstream `/blindPaint` hardened that into **"unDolphin
+API only. Direct-to-provider writes break the authorship record."** The operator ruled the
+exclusivity agent-minted — he never said it, and the estate takes postures and affinity
+gradients rather than prohibitions. The cost stands; the ban does not. Do not re-graft it.
 
 Related: [[the-gallery-surface|The gallery surface]]
