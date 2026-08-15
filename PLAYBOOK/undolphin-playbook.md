@@ -1,6 +1,5 @@
 ---
 type: playbook-note
-sub_type: index
 project: unDolphin
 operator: artificer
 agent(s): alchemist.Segovia

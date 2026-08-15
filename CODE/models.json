@@ -146,5 +146,71 @@
     "note": "Anime, cleaner cel look. REQUIRES the score prefix: 'score_9, score_8_up, score_7_up, source_anime'. Takes pony LoRAs ONLY.",
     "img": "optional",
     "imgMax": 1
+  },
+  {
+    "id": "hassaku-xl",
+    "name": "Hassaku XL (Illustrious)",
+    "provider": "Civitai / Runware",
+    "air": "civitai:140272@251889",
+    "tag": "ANIME",
+    "free": false,
+    "price": 0.0013,
+    "default_steps": 28,
+    "step_max": 50,
+    "default_cfg": 5,
+    "arch": "illustrious",
+    "sizes": [
+      "9:16",
+      "1:1",
+      "16:9",
+      "2:3"
+    ],
+    "note": "Anime. Named alongside WAI as one of the two most popular Illustrious fine-tunes. Booru tags; quality prefix. Takes illustrious LoRAs.",
+    "img": "optional",
+    "imgMax": 1
+  },
+  {
+    "id": "pony-v7",
+    "name": "Pony V7",
+    "provider": "Runware",
+    "air": "runware:777@1",
+    "tag": "ANIME",
+    "free": false,
+    "price": 0.0013,
+    "default_steps": 28,
+    "step_max": 50,
+    "default_cfg": 7,
+    "arch": "pony_v7",
+    "sizes": [
+      "9:16",
+      "1:1",
+      "16:9",
+      "2:3"
+    ],
+    "note": "Anime, Runware-native successor to Pony V6. Score-prefix convention may differ from V6 -- untested.",
+    "img": "optional",
+    "imgMax": 1
+  },
+  {
+    "id": "plant-milk",
+    "name": "Plant Milk Model Suite",
+    "provider": "Runware",
+    "air": "x:42@1714002",
+    "tag": "ANIME",
+    "free": false,
+    "price": 0.0013,
+    "default_steps": 28,
+    "step_max": 50,
+    "default_cfg": 5,
+    "arch": "sdxl",
+    "sizes": [
+      "9:16",
+      "1:1",
+      "16:9",
+      "2:3"
+    ],
+    "note": "Anime, Illustrious-family suite noted for creative range on plain booru prompts.",
+    "img": "optional",
+    "imgMax": 1
   }
 ]
